@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const state = getState(userId);
+    const state = await getState(userId);
     return NextResponse.json(state, { headers: responseHeaders });
   } catch (error: any) {
     console.error("Error in GET state API:", error);
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const state = await request.json() as TrackerState;
-    saveState(userId, state);
+    await saveState(userId, state);
 
     return NextResponse.json({ success: true }, { headers: responseHeaders });
   } catch (error: any) {
