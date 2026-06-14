@@ -100,7 +100,7 @@ a, button {
 }
 @media (min-width: 768px) {
   .sidebar-panel {
-    width: 340px;
+    width: 400px;
   }
 }
 
