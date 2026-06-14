@@ -10,11 +10,12 @@ body {
   transition: background-color 0.25s ease-out, color 0.25s ease-out;
 }
 
-/* Light mode image filter ("filtre dégueulasse" as requested) */
-[data-theme="light"] img {
+/* Light mode image filter ("filtre dégueulasse" as requested) - excluding logos */
+[data-theme="light"] img:not(.logo-large):not(.logo-small) {
   filter: sepia(0.85) contrast(1.15) brightness(0.9) saturate(0.8);
   transition: filter 0.25s ease-out;
 }
+
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
@@ -265,5 +266,123 @@ a, button {
   opacity: 1;
   transform: translateY(-2px);
 }
+
+/* Custom Tooltip Styles for Sidebar Progress Bars */
+.progress-tooltip-container {
+  position: relative;
+}
+
+.progress-tooltip {
+  visibility: hidden;
+  position: absolute;
+  left: 105%;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--rgds-bg-2);
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 8px;
+  padding: 14px;
+  width: 220px;
+  z-index: 9999;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.progress-tooltip-container:hover .progress-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .progress-tooltip {
+    left: 50%;
+    top: 105%;
+    transform: translateX(-50%);
+    width: 280px;
+  }
+}
+
+/* Custom Modal Styles (Replacing native alerts) */
+.custom-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  backdrop-filter: blur(4px);
+}
+
+.custom-modal-card {
+  background-color: var(--rgds-bg-2);
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 12px;
+  max-width: 450px;
+  width: 90%;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  animation: scale-up 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes scale-up {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Confetti Celebration Styles */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-50px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(105vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.confetti-particle {
+  position: fixed;
+  top: -20px;
+  width: 10px;
+  height: 10px;
+  z-index: 100000;
+  pointer-events: none;
+  animation: confetti-fall 4s linear forwards;
+}
+
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99998;
+  backdrop-filter: blur(8px);
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.celebration-card {
+  text-align: center;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  background: radial-gradient(circle, var(--rgds-card) 0%, var(--rgds-bg-2) 100%);
+  border: 2px solid var(--rgds-100);
+  border-radius: 16px;
+  box-shadow: 0 0 30px var(--rgds-100);
+  animation: scale-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 
 

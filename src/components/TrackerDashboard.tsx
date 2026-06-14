@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Checkbox, Switch, Button, Input, ProgressBar, Badge } from "@rgds/react";
+import { useState, useEffect, useRef } from "react";
+import { Checkbox, Switch, Button, ProgressBar, Badge } from "@rgds/react";
 import { heartPieces, poeSouls, goldenBugs, Collectible } from "@/data/collectiblesData";
 import { itemsData } from "@/data/itemsData";
 import { mirrorDirections } from "@/utils/directions";
 
 type TabType = "inventory" | "hearth" | "souls" | "bugs" | "zones";
-type ThemeType = "dark" | "light";
+type ThemeType = "dark" | "light" | "system";
 
 interface InitialState {
   selectedGame: string;
@@ -18,6 +18,7 @@ interface InitialState {
 
 interface TrackerDashboardProps {
   initialState: InitialState;
+  userId: string;
 }
 
 // Translations dictionary for French & English
@@ -26,13 +27,11 @@ const translations = {
     title: "RG-GT (Game Track)",
     gameVersion: "Version du Jeu",
     unlockedRegions: "Provinces Débloquées",
-    inventory: "Inventaire de Link",
+    inventory: "Inventaire Avancé",
     resetBtn: "Effacer la collecte",
     resetConfirm: "Voulez-vous vraiment réinitialiser toute votre progression de collecte ?",
     saving: "Sauvegarde...",
     synced: "Données synchronisées",
-    searchPlaceholder: "Ex. Gorge, grotte, coffre...",
-    searchLabel: "Rechercher",
     provinceFilterLabel: "Filtrer par province",
     allProvinces: "Toutes les contrées",
     availableOnly: "Disponibles uniquement",
@@ -45,9 +44,17 @@ const translations = {
     statsHearts: "Fragments de Cœur",
     statsPoes: "Âmes de Spectre",
     statsBugs: "Insectes Dorés",
-    overview: "Vue d'ensemble des provinces",
+    overview: "Vue d'ensemble",
     details: "Détails",
-    emptyList: "Aucun élément trouvé pour ces filtres.",
+    emptyList: "Aucun élément disponible",
+    confirmTitle: "Réinitialiser la progression",
+    cancel: "Annuler",
+    confirm: "Confirmer",
+    userIdLabel: "ID Utilisateur",
+    congratsTitle: "Félicitations !",
+    congratsMessage: "Vous avez complété à 100% la catégorie :",
+    close: "Fermer",
+    systemTheme: "Système",
     provinces: {
       ordon: "Ordona / Toal",
       faron: "Firone",
@@ -76,13 +83,11 @@ const translations = {
     title: "RG-GT (Game Track)",
     gameVersion: "Game Version",
     unlockedRegions: "Unlocked Provinces",
-    inventory: "Link's Inventory",
+    inventory: "Advanced Inventory",
     resetBtn: "Reset progress",
     resetConfirm: "Are you sure you want to reset all your collectible progress?",
     saving: "Saving...",
     synced: "Data synced",
-    searchPlaceholder: "Ex. Gorge, cave, chest...",
-    searchLabel: "Search",
     provinceFilterLabel: "Filter by province",
     allProvinces: "All Provinces",
     availableOnly: "Obtainable only",
@@ -95,9 +100,17 @@ const translations = {
     statsHearts: "Heart Pieces",
     statsPoes: "Poe Souls",
     statsBugs: "Golden Bugs",
-    overview: "Provinces Overview",
+    overview: "Overview",
     details: "Details",
-    emptyList: "No items found with these filters.",
+    emptyList: "No items available",
+    confirmTitle: "Reset Progress",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    userIdLabel: "User ID",
+    congratsTitle: "Congratulations!",
+    congratsMessage: "You have completed 100% of the category:",
+    close: "Close",
+    systemTheme: "System",
     provinces: {
       ordon: "Ordon",
       faron: "Faron",
@@ -179,18 +192,63 @@ const MapIcon = () => (
   </svg>
 );
 
-export default function TrackerDashboard({ initialState }: TrackerDashboardProps) {
+export default function TrackerDashboard({ initialState, userId }: TrackerDashboardProps) {
   const [selectedGame, setSelectedGame] = useState<string>(initialState.selectedGame);
   const [checkedItems, setCheckedItems] = useState<string[]>(initialState.checkedItems);
   const [checkedCollectibles, setCheckedCollectibles] = useState<string[]>(initialState.checkedCollectibles);
   const [checkedRegions, setCheckedRegions] = useState<string[]>(initialState.checkedRegions);
   const [activeTab, setActiveTab] = useState<TabType>("inventory");
-  const [searchQuery, setSearchQuery] = useState<string>("");
   const [showOnlyObtainable, setShowOnlyObtainable] = useState<boolean>(false);
   const [hideCompleted, setHideCompleted] = useState<boolean>(false);
   const [selectedProvince, setSelectedProvince] = useState<string>("All");
-  const [theme, setTheme] = useState<ThemeType>("dark");
+  const [theme, setTheme] = useState<ThemeType>("system");
   const [lang, setLang] = useState<"fr" | "en">("fr");
+
+  // Dialog and celebration states
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
+  const [showCelebration, setShowCelebration] = useState<boolean>(false);
+  const [celebratedCategory, setCelebratedCategory] = useState<string>("");
+  const [confettiParticles, setConfettiParticles] = useState<{ id: number; left: string; color: string; delay: string; size: string }[]>([]);
+
+  // Completion checking helper
+  const [completedCategories, setCompletedCategories] = useState<{ hearts: boolean; poes: boolean; bugs: boolean; all: boolean }>({
+    hearts: false,
+    poes: false,
+    bugs: false,
+    all: false
+  });
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+
+  // Debounce ref to avoid blocking UI and flooding Neon connections
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Optimistic/Debounced Save helper
+  const debouncedSave = (
+    updatedGame: string,
+    updatedItems: string[],
+    updatedCollectibles: string[],
+    updatedRegions: string[]
+  ) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedGame: updatedGame,
+            checkedItems: updatedItems,
+            checkedCollectibles: updatedCollectibles,
+            checkedRegions: updatedRegions,
+          }),
+        });
+      } catch (err) {
+        console.error("Error saving state:", err);
+      }
+    }, 800);
+  };
 
   // Sync state if initial state props change
   useEffect(() => {
@@ -200,7 +258,17 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
     setCheckedRegions(initialState.checkedRegions);
   }, [initialState]);
 
-  // Load local state & cookie (which sets standard user id) on mount
+  // Apply visual theme to document element
+  const applyTheme = (t: ThemeType) => {
+    if (t === "system") {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
+    } else {
+      document.documentElement.setAttribute("data-theme", t);
+    }
+  };
+
+  // Load local state, theme & language on mount
   useEffect(() => {
     const fetchState = async () => {
       try {
@@ -212,6 +280,18 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
             setCheckedItems(data.checkedItems || []);
             setCheckedCollectibles(data.checkedCollectibles || []);
             setCheckedRegions(data.checkedRegions || ["ordon", "faron", "eldin", "lanayru", "desert", "snowpeak", "sky", "twilight"]);
+            
+            // Set initial loaded completion state
+            const hComplete = heartPieces.length > 0 && heartPieces.every(hp => (data.checkedCollectibles || []).includes(hp.id));
+            const pComplete = poeSouls.length > 0 && poeSouls.every(poe => (data.checkedCollectibles || []).includes(poe.id));
+            const bComplete = goldenBugs.length > 0 && goldenBugs.every(bug => (data.checkedCollectibles || []).includes(bug.id));
+            setCompletedCategories({
+              hearts: hComplete,
+              poes: pComplete,
+              bugs: bComplete,
+              all: hComplete && pComplete && bComplete
+            });
+            setIsFirstLoad(false);
           }
         }
       } catch (err) {
@@ -221,13 +301,9 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
     fetchState();
 
     // Theme initialization
-    const savedTheme = localStorage.getItem("rg_gt_theme") as ThemeType;
-    if (savedTheme === "light" || savedTheme === "dark") {
-      setTheme(savedTheme);
-      document.documentElement.setAttribute("data-theme", savedTheme);
-    } else {
-      document.documentElement.setAttribute("data-theme", "dark");
-    }
+    const savedTheme = (localStorage.getItem("rg_gt_theme") as ThemeType) || "system";
+    setTheme(savedTheme);
+    applyTheme(savedTheme);
 
     // Language initialization
     const savedLang = localStorage.getItem("rg_gt_lang");
@@ -237,37 +313,78 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
       const browserLang = navigator.language.substring(0, 2);
       setLang(browserLang === "en" ? "en" : "fr");
     }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, []);
 
-  // Save state helper
-  const triggerSave = async (
-    updatedGame: string,
-    updatedItems: string[],
-    updatedCollectibles: string[],
-    updatedRegions: string[]
-  ) => {
-    try {
-      await fetch("/api/state", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          selectedGame: updatedGame,
-          checkedItems: updatedItems,
-          checkedCollectibles: updatedCollectibles,
-          checkedRegions: updatedRegions,
-        }),
-      });
-    } catch (err) {
-      console.error("Error saving state:", err);
-    }
-  };
+  // System theme changes listener
+  useEffect(() => {
+    if (theme !== "system") return;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
+    };
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [theme]);
 
-  // Toggle dark/light theme
-  const toggleTheme = () => {
-    const newTheme: ThemeType = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
-    localStorage.setItem("rg_gt_theme", newTheme);
+  // 100% Completion Celebration Tracker
+  useEffect(() => {
+    if (isFirstLoad) return;
+
+    const heartsCompleted = heartPieces.length > 0 && heartPieces.every(hp => checkedCollectibles.includes(hp.id));
+    const poesCompleted = poeSouls.length > 0 && poeSouls.every(poe => checkedCollectibles.includes(poe.id));
+    const bugsCompleted = goldenBugs.length > 0 && goldenBugs.every(bug => checkedCollectibles.includes(bug.id));
+    const allCompleted = heartsCompleted && poesCompleted && bugsCompleted;
+
+    let newlyCompleted = "";
+    if (allCompleted && !completedCategories.all) {
+      newlyCompleted = lang === "fr" ? "100% - Complété !" : "100% Game Completion!";
+    } else if (heartsCompleted && !completedCategories.hearts) {
+      newlyCompleted = translations[lang].statsHearts;
+    } else if (poesCompleted && !completedCategories.poes) {
+      newlyCompleted = translations[lang].statsPoes;
+    } else if (bugsCompleted && !completedCategories.bugs) {
+      newlyCompleted = translations[lang].statsBugs;
+    }
+
+    if (newlyCompleted) {
+      setCelebratedCategory(newlyCompleted);
+      setShowCelebration(true);
+
+      const colors = ["#0FA3EB", "#22C55E", "#F59E0B", "#EF4444", "#A855F7", "#EC4899"];
+      const particles = Array.from({ length: 85 }).map((_, i) => ({
+        id: i,
+        left: `${Math.random() * 100}%`,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: `${Math.random() * 2}s`,
+        size: `${Math.random() * 8 + 6}px`
+      }));
+      setConfettiParticles(particles);
+    }
+
+    setCompletedCategories({
+      hearts: heartsCompleted,
+      poes: poesCompleted,
+      bugs: bugsCompleted,
+      all: allCompleted
+    });
+  }, [checkedCollectibles, isFirstLoad, lang]);
+
+  // Toggle theme dark -> light -> system
+  const handleToggleTheme = () => {
+    let nextTheme: ThemeType = "dark";
+    if (theme === "dark") nextTheme = "light";
+    else if (theme === "light") nextTheme = "system";
+    else nextTheme = "dark";
+
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+    localStorage.setItem("rg_gt_theme", nextTheme);
   };
 
   // Handle language switch
@@ -282,7 +399,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
       ? checkedItems.filter((id) => id !== itemId)
       : [...checkedItems, itemId];
     setCheckedItems(next);
-    triggerSave(selectedGame, next, checkedCollectibles, checkedRegions);
+    debouncedSave(selectedGame, next, checkedCollectibles, checkedRegions);
   };
 
   // Handle collectible checkbox toggle
@@ -291,7 +408,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
       ? checkedCollectibles.filter((id) => id !== collectibleId)
       : [...checkedCollectibles, collectibleId];
     setCheckedCollectibles(next);
-    triggerSave(selectedGame, checkedItems, next, checkedRegions);
+    debouncedSave(selectedGame, checkedItems, next, checkedRegions);
   };
 
   // Handle region checkbox toggle
@@ -300,22 +417,25 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
       ? [...checkedRegions, regionKey]
       : checkedRegions.filter((r) => r !== regionKey);
     setCheckedRegions(next);
-    triggerSave(selectedGame, checkedItems, checkedCollectibles, next);
+    debouncedSave(selectedGame, checkedItems, checkedCollectibles, next);
   };
 
   // Handle game version toggle
   const handleGameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newGame = e.target.value;
     setSelectedGame(newGame);
-    triggerSave(newGame, checkedItems, checkedCollectibles, checkedRegions);
+    debouncedSave(newGame, checkedItems, checkedCollectibles, checkedRegions);
   };
 
-  // Quick reset progress helper
-  const handleResetProgress = () => {
-    if (window.confirm(translations[lang].resetConfirm)) {
-      setCheckedCollectibles([]);
-      triggerSave(selectedGame, checkedItems, [], checkedRegions);
-    }
+  // Custom modal confirmation trigger
+  const triggerResetModal = () => {
+    setShowResetModal(true);
+  };
+
+  const handleConfirmReset = () => {
+    setCheckedCollectibles([]);
+    debouncedSave(selectedGame, checkedItems, [], checkedRegions);
+    setShowResetModal(false);
   };
 
   // Check if a collectible's item conditions are satisfied
@@ -334,27 +454,20 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
     return list.filter((item) => {
       const pKey = getProvinceKey(item.location);
 
-      // 1. Unlocked region filter (from sidebar checklist)
+      // 1. Unlocked region filter (from checklist)
       if (!checkedRegions.includes(pKey)) return false;
 
-      // 2. Search Query
-      const matchesSearch =
-        item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      if (!matchesSearch) return false;
-
-      // 3. Dropdown Province Filter
+      // 2. Dropdown Province Filter
       if (selectedProvince !== "All" && pKey !== selectedProvince) {
         return false;
       }
 
-      // 4. Completed Filter
+      // 3. Completed Filter
       if (hideCompleted && checkedCollectibles.includes(item.id)) {
         return false;
       }
 
-      // 5. Obtainable Filter
+      // 4. Obtainable Filter
       if (showOnlyObtainable && !isObtainable(item.conditions)) {
         return false;
       }
@@ -363,15 +476,15 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
     });
   };
 
-  // Collectibles totals (restricted to unlocked regions)
-  const totalHPs = heartPieces.filter(hp => checkedRegions.includes(getProvinceKey(hp.location))).length;
-  const collectedHPs = heartPieces.filter(hp => checkedRegions.includes(getProvinceKey(hp.location)) && checkedCollectibles.includes(hp.id)).length;
+  // Global static totals (absolute count in game, does not wrap based on selected regions)
+  const totalHPsGlobal = heartPieces.length;
+  const collectedHPsGlobal = heartPieces.filter(hp => checkedCollectibles.includes(hp.id)).length;
 
-  const totalPoes = poeSouls.filter(poe => checkedRegions.includes(getProvinceKey(poe.location))).length;
-  const collectedPoes = poeSouls.filter(poe => checkedRegions.includes(getProvinceKey(poe.location)) && checkedCollectibles.includes(poe.id)).length;
+  const totalPoesGlobal = poeSouls.length;
+  const collectedPoesGlobal = poeSouls.filter(poe => checkedCollectibles.includes(poe.id)).length;
 
-  const totalBugs = goldenBugs.filter(bug => checkedRegions.includes(getProvinceKey(bug.location))).length;
-  const collectedBugs = goldenBugs.filter(bug => checkedRegions.includes(getProvinceKey(bug.location)) && checkedCollectibles.includes(bug.id)).length;
+  const totalBugsGlobal = goldenBugs.length;
+  const collectedBugsGlobal = goldenBugs.filter(bug => checkedCollectibles.includes(bug.id)).length;
 
   // Aggregate completion data per Province
   const getProvinceStats = (provinceKey: string) => {
@@ -414,7 +527,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
   return (
     <div className="layout-container bg-rgds-bg-1 text-rgds transition-default min-h-screen">
       
-      {/* Sidebar: Link's Inventory & Game Settings */}
+      {/* Sidebar: Settings, Global Progress, and User Footer */}
       <aside className="sidebar-panel border-rgds-card bg-rgds-bg-2 p-md flex flex-col justify-start border-b md:border-r md:border-b-0 md:h-screen md:overflow-y-auto shrink-0">
         
         {/* Game Title Logo Row and Settings Switchers Row */}
@@ -427,7 +540,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
               className="logo-large"
               style={{ height: "36px", width: "auto", objectFit: "contain" }}
               onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://s3.romain-guillemot.dev/assets/logos/logo.sgv";
+                (e.target as HTMLImageElement).src = "https://s3.romain-guillemot.dev/assets/logos/logo.svg";
               }}
             />
             <img 
@@ -438,36 +551,37 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
             />
           </div>
           
-          {/* Theme & Language Controls Row (Spaced out below logo) */}
+          {/* Theme & Language Controls Row */}
           <div className="flex-row gap-sm items-center mt-xs" style={{ display: "flex" }}>
             <button 
               onClick={() => handleLangChange(lang === "fr" ? "en" : "fr")}
-              className="flex items-center justify-center rounded-md border-rgds-card bg-rgds-card text-xs font-bold text-rgds-100 hover:bg-rgds-500 hover:text-rgds-white transition-default"
+              className="flex items-center justify-center rounded-md border-rgds-card bg-rgds-card text-xs font-bold text-rgds hover:bg-rgds-500 hover:text-rgds-white transition-default"
               style={{ width: "36px", height: "36px", borderWidth: "1px" }}
               title="Change Language"
             >
               {lang.toUpperCase()}
             </button>
             <button 
-              onClick={toggleTheme}
-              className="flex items-center justify-center rounded-md border-rgds-card bg-rgds-card text-xs text-rgds-100 hover:bg-rgds-500 hover:text-rgds-white transition-default"
-              style={{ width: "36px", height: "36px", borderWidth: "1px" }}
+              onClick={handleToggleTheme}
+              className="flex items-center justify-center rounded-md border-rgds-card bg-rgds-card text-sm text-rgds hover:bg-rgds-500 hover:text-rgds-white transition-default gap-xs"
+              style={{ height: "36px", padding: "0 10px", borderWidth: "1px" }}
               title="Toggle Theme"
             >
-              {theme === "dark" ? "☀️" : "🌙"}
+              {theme === "dark" ? "🌙" : theme === "light" ? "☀️" : "💻"}
+              <span className="text-[10px] font-semibold uppercase">{theme === "system" ? translations[lang].systemTheme : ""}</span>
             </button>
           </div>
         </div>
 
-        {/* Game Version Selector (With margin top and bottom for spacing) */}
-        <div className="my-lg" style={{ marginTop: "24px", marginBottom: "24px" }}>
+        {/* Game Version Selector */}
+        <div className="my-lg" style={{ marginTop: "16px", marginBottom: "24px" }}>
           <label className="mb-xs block text-xs font-semibold uppercase tracking-wider text-rgds-300">
             {translations[lang].gameVersion}
           </label>
           <select
             value={selectedGame}
             onChange={handleGameChange}
-            className="w-full rounded-md border-rgds-card bg-rgds-card px-sm py-xs text-sm text-rgds-white focus:outline-none focus:border-rgds-100"
+            className="w-full rounded-md border-rgds-card bg-rgds-card px-sm py-xs text-sm text-rgds focus:outline-none focus:border-rgds-100"
             style={{ borderWidth: "1px" }}
           >
             <option value="tp-gcn">{translations[lang].versionNames["tp-gcn"]}</option>
@@ -477,67 +591,117 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
           </select>
         </div>
 
-        {/* Global Progress Indicators */}
+        {/* Global Progress Indicators (With CSS hover breakdown tooltips) */}
         <div className="mb-md p-md rounded-md border-rgds-card bg-rgds-card/50" style={{ borderWidth: "1px" }}>
-          <div className="mb-sm">
+          
+          {/* Hearts Progress Box */}
+          <div className="mb-sm progress-tooltip-container">
             <div className="flex justify-between items-center text-xs font-semibold mb-xs">
-              <span className="text-rgds-white">{translations[lang].statsHearts}</span>
-              <span className="text-rgds-100 font-bold">{collectedHPs} / {totalHPs}</span>
+              <span className="text-rgds">{translations[lang].statsHearts}</span>
+              <span className="text-rgds-100 font-bold">{collectedHPsGlobal} / {totalHPsGlobal}</span>
             </div>
             <ProgressBar
-              value={collectedHPs}
-              max={totalHPs}
+              value={collectedHPsGlobal}
+              max={totalHPsGlobal}
               size="sm"
               tone="info"
               showLabel={false}
             />
+            {/* Tooltip detail breakdown */}
+            <div className="progress-tooltip text-xs font-sans text-rgds">
+              <div className="font-bold border-b border-rgds-card-border pb-xs mb-xs">
+                {translations[lang].statsHearts}
+              </div>
+              {regionsList.map(r => {
+                const provinceHPs = heartPieces.filter(hp => getProvinceKey(hp.location) === r.key);
+                const provinceCollected = provinceHPs.filter(hp => checkedCollectibles.includes(hp.id)).length;
+                const isUnlocked = checkedRegions.includes(r.key);
+                return (
+                  <div key={r.key} className="flex justify-between items-center py-xxs">
+                    <span className={isUnlocked ? "text-rgds" : "text-rgds-300 line-through"} style={{ opacity: isUnlocked ? 1 : 0.5 }}>
+                      {lang === "fr" ? r.labelFr : r.labelEn}
+                    </span>
+                    <span className="font-bold">
+                      {provinceCollected}/{provinceHPs.length}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="mb-sm">
+          {/* Poes Progress Box */}
+          <div className="mb-sm progress-tooltip-container">
             <div className="flex justify-between items-center text-xs font-semibold mb-xs">
-              <span className="text-rgds-white">{translations[lang].statsPoes}</span>
-              <span className="text-rgds-warning font-bold">{collectedPoes} / {totalPoes}</span>
+              <span className="text-rgds">{translations[lang].statsPoes}</span>
+              <span className="text-rgds-warning font-bold">{collectedPoesGlobal} / {totalPoesGlobal}</span>
             </div>
             <ProgressBar
-              value={collectedPoes}
-              max={totalPoes}
+              value={collectedPoesGlobal}
+              max={totalPoesGlobal}
               size="sm"
               tone="warning"
               showLabel={false}
             />
+            {/* Tooltip detail breakdown */}
+            <div className="progress-tooltip text-xs font-sans text-rgds">
+              <div className="font-bold border-b border-rgds-card-border pb-xs mb-xs">
+                {translations[lang].statsPoes}
+              </div>
+              {regionsList.map(r => {
+                const provincePoes = poeSouls.filter(poe => getProvinceKey(poe.location) === r.key);
+                const provinceCollected = provincePoes.filter(poe => checkedCollectibles.includes(poe.id)).length;
+                const isUnlocked = checkedRegions.includes(r.key);
+                return (
+                  <div key={r.key} className="flex justify-between items-center py-xxs">
+                    <span className={isUnlocked ? "text-rgds" : "text-rgds-300 line-through"} style={{ opacity: isUnlocked ? 1 : 0.5 }}>
+                      {lang === "fr" ? r.labelFr : r.labelEn}
+                    </span>
+                    <span className="font-bold">
+                      {provinceCollected}/{provincePoes.length}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div>
+          {/* Bugs Progress Box */}
+          <div className="progress-tooltip-container">
             <div className="flex justify-between items-center text-xs font-semibold mb-xs">
-              <span className="text-rgds-white">{translations[lang].statsBugs}</span>
-              <span className="text-rgds-success font-bold">{collectedBugs} / {totalBugs}</span>
+              <span className="text-rgds">{translations[lang].statsBugs}</span>
+              <span className="text-rgds-success font-bold">{collectedBugsGlobal} / {totalBugsGlobal}</span>
             </div>
             <ProgressBar
-              value={collectedBugs}
-              max={totalBugs}
+              value={collectedBugsGlobal}
+              max={totalBugsGlobal}
               size="sm"
               tone="success"
               showLabel={false}
             />
+            {/* Tooltip detail breakdown */}
+            <div className="progress-tooltip text-xs font-sans text-rgds">
+              <div className="font-bold border-b border-rgds-card-border pb-xs mb-xs">
+                {translations[lang].statsBugs}
+              </div>
+              {regionsList.map(r => {
+                const provinceBugs = goldenBugs.filter(bug => getProvinceKey(bug.location) === r.key);
+                const provinceCollected = provinceBugs.filter(bug => checkedCollectibles.includes(bug.id)).length;
+                const isUnlocked = checkedRegions.includes(r.key);
+                return (
+                  <div key={r.key} className="flex justify-between items-center py-xxs">
+                    <span className={isUnlocked ? "text-rgds" : "text-rgds-300 line-through"} style={{ opacity: isUnlocked ? 1 : 0.5 }}>
+                      {lang === "fr" ? r.labelFr : r.labelEn}
+                    </span>
+                    <span className="font-bold">
+                      {provinceCollected}/{provinceBugs.length}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Unlocked Regions Checklist */}
-        <div className="mb-md">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-rgds-300 mb-xs">
-            {translations[lang].unlockedRegions}
-          </h2>
-          <div className="flex-col gap-xs" style={{ display: "flex" }}>
-            {regionsList.map((r) => (
-              <Checkbox
-                key={r.key}
-                checked={checkedRegions.includes(r.key)}
-                onChange={(checked) => handleRegionToggle(r.key, checked)}
-                label={lang === "fr" ? r.labelFr : r.labelEn}
-                size="small"
-              />
-            ))}
-          </div>
         </div>
 
         {/* Reset Actions */}
@@ -545,15 +709,94 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
           content={translations[lang].resetBtn}
           type="danger"
           size="sm"
-          onClick={handleResetProgress}
+          onClick={triggerResetModal}
           className="w-full"
         />
+
+        {/* Footer info: Copyright and User Unique ID */}
+        <div className="mt-auto pt-lg text-center" style={{ borderTop: "1px solid var(--rgds-card-border)", marginTop: "auto" }}>
+          <p className="text-[10px] text-rgds-300 font-mono select-all mb-xs break-all">
+            {translations[lang].userIdLabel}: {userId}
+          </p>
+          <p className="text-[10px] text-rgds-300">
+            &copy; 2026 Romain GUILLEMOT
+          </p>
+        </div>
       </aside>
+
+      {/* Custom Confirmation Modal Popup */}
+      {showResetModal && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal-card">
+            <h3 className="text-base font-bold text-rgds mb-md font-sans">
+              {translations[lang].confirmTitle}
+            </h3>
+            <p className="text-xs text-rgds-300 leading-relaxed mb-lg">
+              {translations[lang].resetConfirm}
+            </p>
+            <div className="flex justify-end gap-sm" style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ marginRight: "8px" }}>
+                <Button
+                  content={translations[lang].cancel}
+                  type="secondary"
+                  size="sm"
+                  onClick={() => setShowResetModal(false)}
+                />
+              </div>
+              <Button
+                content={translations[lang].confirm}
+                type="danger"
+                size="sm"
+                onClick={handleConfirmReset}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 100% Celebration Congratulations Overlay */}
+      {showCelebration && (
+        <div className="celebration-overlay" onClick={() => setShowCelebration(false)}>
+          {confettiParticles.map((p) => (
+            <div
+              key={p.id}
+              className="confetti-particle"
+              style={{
+                left: p.left,
+                backgroundColor: p.color,
+                animationDelay: p.delay,
+                width: p.size,
+                height: p.size,
+                borderRadius: Math.random() > 0.5 ? "50%" : "2px"
+              }}
+            />
+          ))}
+          <div className="celebration-card" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold text-rgds-100 mb-sm font-sans">
+              🎉 {translations[lang].congratsTitle} 🎉
+            </h2>
+            <p className="text-sm text-rgds leading-relaxed mb-md">
+              {translations[lang].congratsMessage}
+            </p>
+            <div className="inline-block bg-rgds-bg-1/80 border border-rgds-100 px-md py-sm rounded-lg text-lg font-bold text-rgds mb-lg shadow-md" style={{ display: "inline-block", padding: "8px 16px", marginBottom: "24px" }}>
+              {celebratedCategory}
+            </div>
+            <div>
+              <Button
+                content={translations[lang].close}
+                type="primary"
+                size="md"
+                onClick={() => setShowCelebration(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 p-md md:p-lg overflow-y-auto flex flex-col">
         
-        {/* Navigation Tabs (SVG icons, clean layout) */}
+        {/* Navigation Tabs */}
         <div className="mb-md flex-row gap-sm pb-sm border-rgds-card" style={{ display: "flex", flexWrap: "wrap", borderWidth: "0 0 1px 0" }}>
           <button
             onClick={() => { setActiveTab("inventory"); }}
@@ -616,11 +859,11 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
           </button>
         </div>
 
-        {/* Tab Content: Link's Inventory */}
+        {/* Tab Content: Advanced Inventory (Link's Inventory + Provinces side-by-side) */}
         {activeTab === "inventory" && (
           <div className="flex-col gap-lg" style={{ display: "flex" }}>
             <div className="flex items-center justify-between border-rgds-card pb-sm" style={{ borderWidth: "0 0 1px 0" }}>
-              <h2 className="text-lg font-bold text-rgds-white font-sans">
+              <h2 className="text-lg font-bold text-rgds font-sans">
                 {translations[lang].inventory}
               </h2>
               <Badge tone="info" variant="solid" size="md">
@@ -628,63 +871,78 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
               </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-              {categories.map((cat) => {
-                const catItems = itemsData.filter((i) => i.category === cat);
-                return (
-                  <div key={cat} className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
-                      {translations[lang].itemCategories[cat]}
-                    </h3>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-md">
-                      {catItems.map((item) => {
-                        const isChecked = checkedItems.includes(item.id);
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleItemToggle(item.id)}
-                            className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
-                            title={lang === "fr" ? item.name : item.englishName}
-                            style={{
-                              width: "60px",
-                              height: "60px",
-                              padding: "8px",
-                              backgroundColor: "var(--rgds-bg-1)"
-                            }}
-                          >
-                            <img 
-                              src={item.iconPath} 
-                              alt={item.name}
-                              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                            />
-                          </button>
-                        );
-                      })}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg" style={{ display: "grid", gap: "24px" }}>
+              {/* Left part: Item categories (takes 2 columns on large screen) */}
+              <div className="lg:col-span-2 flex flex-col gap-lg" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {categories.map((cat) => {
+                  const catItems = itemsData.filter((i) => i.category === cat);
+                  return (
+                    <div key={cat} className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
+                        {translations[lang].itemCategories[cat]}
+                      </h3>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-md" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: "12px" }}>
+                        {catItems.map((item) => {
+                          const isChecked = checkedItems.includes(item.id);
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => handleItemToggle(item.id)}
+                              className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
+                              title={lang === "fr" ? item.name : item.englishName}
+                              style={{
+                                width: "60px",
+                                height: "60px",
+                                padding: "8px",
+                                backgroundColor: "var(--rgds-bg-1)"
+                              }}
+                            >
+                              <img 
+                                src={item.iconPath} 
+                                alt={item.name}
+                                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {/* Right part: Unlocked Provinces checklist (takes 1 column) */}
+              <div className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card h-fit" style={{ height: "fit-content" }}>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
+                  {translations[lang].unlockedRegions}
+                </h3>
+                <p className="text-xs text-rgds-300 mb-md" style={{ marginBottom: "16px" }}>
+                  {lang === "fr" 
+                    ? "Sélectionnez les provinces pour afficher les collectibles correspondants." 
+                    : "Select provinces to reveal their associated collectibles."}
+                </p>
+                <div className="flex-col gap-xs" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {regionsList.map((r) => (
+                    <div key={r.key} className="flex items-center py-xs px-sm rounded-md bg-rgds-bg-1/40 hover:bg-rgds-bg-1/70 transition-default" style={{ padding: "8px 12px", borderRadius: "6px" }}>
+                      <Checkbox
+                        checked={checkedRegions.includes(r.key)}
+                        onChange={(checked) => handleRegionToggle(r.key, checked)}
+                        label={lang === "fr" ? r.labelFr : r.labelEn}
+                        size="medium"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Filters Panel */}
+        {/* Filters Panel (Search bar removed completely) */}
         {activeTab !== "zones" && activeTab !== "inventory" && (
           <div className="mb-md p-md rounded-md border-rgds-card bg-rgds-card" style={{ borderWidth: "1px" }}>
-            <div className="filter-grid">
+            <div className="filter-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
               
-              {/* Search Input */}
-              <div style={{ gridColumn: "span 2" }}>
-                <Input
-                  name="search"
-                  label={translations[lang].searchLabel}
-                  placeholder={translations[lang].searchPlaceholder}
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  size="sm"
-                />
-              </div>
-
               {/* Province selector */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-rgds-300" style={{ marginBottom: "6px" }}>
@@ -693,7 +951,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                 <select
                   value={selectedProvince}
                   onChange={(e) => setSelectedProvince(e.target.value)}
-                  className="w-full rounded-md border-rgds-card bg-rgds-bg-1 px-sm py-xs text-sm text-rgds-white focus:outline-none focus:border-rgds-100"
+                  className="w-full rounded-md border-rgds-card bg-rgds-bg-1 px-sm py-xs text-sm text-rgds focus:outline-none focus:border-rgds-100"
                   style={{ borderWidth: "1px", height: "36px" }}
                 >
                   <option value="All">{translations[lang].allProvinces}</option>
@@ -706,7 +964,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
               </div>
 
               {/* Switches */}
-              <div className="flex-col gap-xs justify-center" style={{ display: "flex" }}>
+              <div className="flex-row gap-lg items-center" style={{ display: "flex", gap: "24px" }}>
                 <Switch
                   checked={showOnlyObtainable}
                   onChange={setShowOnlyObtainable}
@@ -823,7 +1081,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                           <span className="text-[10px] font-bold uppercase tracking-wider text-rgds-300">
                             {pName}
                           </span>
-                          <h3 className="text-sm font-bold text-rgds-white mt-xs">
+                          <h3 className="text-sm font-bold text-rgds mt-xs">
                             {hp.location}
                           </h3>
                         </div>
@@ -883,7 +1141,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
               })}
             </div>
             {getFilteredCollectibles(heartPieces).length === 0 && (
-              <div className="text-center text-xs text-rgds-300 py-lg">
+              <div className="text-center text-[11px] text-rgds-300 py-md italic">
                 {translations[lang].emptyList}
               </div>
             )}
@@ -987,7 +1245,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                           <span className="text-[10px] font-bold uppercase tracking-wider text-rgds-300">
                             {pName}
                           </span>
-                          <h3 className="text-sm font-bold text-rgds-white mt-xs">
+                          <h3 className="text-sm font-bold text-rgds mt-xs">
                             {poe.location}
                           </h3>
                         </div>
@@ -1047,7 +1305,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
               })}
             </div>
             {getFilteredCollectibles(poeSouls).length === 0 && (
-              <div className="text-center text-xs text-rgds-300 py-lg">
+              <div className="text-center text-[11px] text-rgds-300 py-md italic">
                 {translations[lang].emptyList}
               </div>
             )}
@@ -1124,7 +1382,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-rgds-300">
                         {pName}
                       </span>
-                      <h3 className="text-sm font-bold text-rgds-white mt-xxs">
+                      <h3 className="text-sm font-bold text-rgds mt-xxs">
                         {getBugName(bug.id, bug.name || "", lang)}
                       </h3>
                       <p className="text-xs text-rgds-300 font-medium leading-none mt-xs">
@@ -1178,7 +1436,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
               })}
             </div>
             {getFilteredCollectibles(goldenBugs).length === 0 && (
-              <div className="text-center text-xs text-rgds-300 py-lg">
+              <div className="text-center text-[11px] text-rgds-300 py-md italic">
                 {translations[lang].emptyList}
               </div>
             )}
@@ -1187,7 +1445,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
 
         {activeTab === "zones" && (
           <div>
-            <div className="grid-cols-2 gap-md" style={{ display: "grid" }}>
+            <div className="grid-cols-2 gap-md" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
               {regionsList.map((r) => {
                 const stats = getProvinceStats(r.key);
                 if (stats.total === 0) return null;
@@ -1204,7 +1462,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                     {/* Header: Title and Completion circle percentage */}
                     <div className="flex justify-between items-start">
                       <div className="flex-col" style={{ display: "flex" }}>
-                        <h3 className="text-sm font-bold text-rgds-white group-hover:text-rgds-100 transition-default">
+                        <h3 className="text-sm font-bold text-rgds group-hover:text-rgds-100 transition-default">
                           {lang === "fr" ? r.labelFr : r.labelEn}
                         </h3>
                         <p className="text-[11px] text-rgds-300 font-medium">
@@ -1228,23 +1486,23 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                     </div>
 
                     {/* Breakdown items using custom clean SVG icons */}
-                    <div className="flex justify-between items-center text-xs text-rgds-300 bg-rgds-bg-1/40 p-xs rounded-md">
-                      <div className="flex items-center gap-xs">
+                    <div className="flex justify-between items-center text-xs text-rgds-300 bg-rgds-bg-1/40 p-xs rounded-md" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px" }}>
+                      <div className="flex items-center gap-xs" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                         <HeartIcon />
-                        <span className="font-bold text-rgds-white">{stats.hpsCollected}</span>
+                        <span className="font-bold text-rgds">{stats.hpsCollected}</span>
                         <span className="text-[10px] text-rgds-300">/{stats.hpsCount}</span>
                       </div>
-                      <div className="flex items-center gap-xs border-rgds-card" style={{ borderWidth: "0 0 0 1px", paddingLeft: "12px" }}>
+                      <div className="flex items-center gap-xs border-rgds-card" style={{ display: "flex", alignItems: "center", gap: "4px", borderWidth: "0 0 0 1px", paddingLeft: "12px" }}>
                         <GhostIcon />
-                        <span className="font-bold text-rgds-white">{stats.poesCollected}</span>
+                        <span className="font-bold text-rgds">{stats.poesCollected}</span>
                         <span className="text-[10px] text-rgds-300">/{stats.poesCount}</span>
                       </div>
-                      <div className="flex items-center gap-xs border-rgds-card" style={{ borderWidth: "0 0 0 1px", paddingLeft: "12px" }}>
+                      <div className="flex items-center gap-xs border-rgds-card" style={{ display: "flex", alignItems: "center", gap: "4px", borderWidth: "0 0 0 1px", paddingLeft: "12px" }}>
                         <BugIcon />
-                        <span className="font-bold text-rgds-white">{stats.bugsCollected}</span>
+                        <span className="font-bold text-rgds">{stats.bugsCollected}</span>
                         <span className="text-[10px] text-rgds-300">/{stats.bugsCount}</span>
                       </div>
-                      <span className="text-[10px] text-rgds-100 font-bold uppercase transition-default pl-xs">
+                      <span className="text-[10px] text-rgds-100 font-bold uppercase transition-default pl-xs" style={{ paddingLeft: "8px" }}>
                         {translations[lang].details} →
                       </span>
                     </div>

@@ -13,5 +13,6 @@ export default async function Page() {
   // If the user has no cookie yet, getState returns the default GC version state.
   const initialState = await getState(userId || "default");
 
-  return <TrackerDashboard initialState={initialState} />;
+  return <TrackerDashboard initialState={initialState} userId={userId || "default"} />;
 }
+
