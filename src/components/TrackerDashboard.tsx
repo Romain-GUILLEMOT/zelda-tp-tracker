@@ -767,7 +767,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                 animationDelay: p.delay,
                 width: p.size,
                 height: p.size,
-                borderRadius: Math.random() > 0.5 ? "50%" : "2px"
+                borderRadius: p.id % 2 === 0 ? "50%" : "2px"
               }}
             />
           ))}
@@ -1150,25 +1150,27 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                         </div>
                       )}
                       
-                      {/* Checkmark overlay (non-clickable indicator) */}
-                      <div
-                        className="absolute transition-default flex items-center justify-center rounded-full"
-                        style={{
-                          top: "12px",
-                          right: "12px",
-                          width: "32px",
-                          height: "32px",
-                          borderWidth: "1px",
-                          borderStyle: "solid",
-                          borderColor: checked ? "var(--rgds-success)" : "rgb(255 255 255 / 0.3)",
-                          backgroundColor: checked ? "var(--rgds-success)" : "var(--rgds-bg-2)",
-                          color: checked ? "var(--rgds-dark)" : "var(--rgds-white)",
-                          zIndex: 10,
-                          pointerEvents: "none"
-                        }}
-                      >
-                        ✔
-                      </div>
+                      {/* Checkmark overlay (only visible when checked) */}
+                      {checked && (
+                        <div
+                          className="absolute transition-default flex items-center justify-center rounded-full"
+                          style={{
+                            top: "12px",
+                            right: "12px",
+                            width: "32px",
+                            height: "32px",
+                            borderWidth: "1px",
+                            borderStyle: "solid",
+                            borderColor: "var(--rgds-success)",
+                            backgroundColor: "var(--rgds-success)",
+                            color: "var(--rgds-dark)",
+                            zIndex: 10,
+                            pointerEvents: "none"
+                          }}
+                        >
+                          ✔
+                        </div>
+                      )}
 
                       {/* Obtainable Tag */}
                       <div className="absolute" style={{ bottom: "12px", left: "12px", zIndex: 10 }}>
@@ -1314,25 +1316,27 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                         </div>
                       )}
                       
-                      {/* Checkmark overlay (non-clickable indicator) */}
-                      <div
-                        className="absolute transition-default flex items-center justify-center rounded-full"
-                        style={{
-                          top: "12px",
-                          right: "12px",
-                          width: "32px",
-                          height: "32px",
-                          borderWidth: "1px",
-                          borderStyle: "solid",
-                          borderColor: checked ? "var(--rgds-success)" : "rgb(255 255 255 / 0.3)",
-                          backgroundColor: checked ? "var(--rgds-success)" : "var(--rgds-bg-2)",
-                          color: checked ? "var(--rgds-dark)" : "var(--rgds-white)",
-                          zIndex: 10,
-                          pointerEvents: "none"
-                        }}
-                      >
-                        ✔
-                      </div>
+                      {/* Checkmark overlay (only visible when checked) */}
+                      {checked && (
+                        <div
+                          className="absolute transition-default flex items-center justify-center rounded-full"
+                          style={{
+                            top: "12px",
+                            right: "12px",
+                            width: "32px",
+                            height: "32px",
+                            borderWidth: "1px",
+                            borderStyle: "solid",
+                            borderColor: "var(--rgds-success)",
+                            backgroundColor: "var(--rgds-success)",
+                            color: "var(--rgds-dark)",
+                            zIndex: 10,
+                            pointerEvents: "none"
+                          }}
+                        >
+                          ✔
+                        </div>
+                      )}
 
                       {/* Obtainable Tag */}
                       <div className="absolute" style={{ bottom: "12px", left: "12px", zIndex: 10 }}>
@@ -1468,25 +1472,25 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                         />
                       </div>
                       
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCollectibleToggle(bug.id);
-                        }}
-                        className="flex items-center justify-center rounded-full transition-default"
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          borderWidth: "1px",
-                          borderStyle: "solid",
-                          borderColor: checked ? "var(--rgds-success)" : "rgb(255 255 255 / 0.2)",
-                          backgroundColor: checked ? "var(--rgds-success)" : "var(--rgds-bg-2)",
-                          color: checked ? "var(--rgds-dark)" : "var(--rgds-white)",
-                          cursor: "pointer"
-                        }}
-                      >
-                        ✔
-                      </button>
+                      <div style={{ width: "24px", height: "24px" }}>
+                        {checked && (
+                          <div
+                            className="flex items-center justify-center rounded-full transition-default"
+                            style={{
+                              width: "24px",
+                              height: "24px",
+                              borderWidth: "1px",
+                              borderStyle: "solid",
+                              borderColor: "var(--rgds-success)",
+                              backgroundColor: "var(--rgds-success)",
+                              color: "var(--rgds-dark)",
+                              pointerEvents: "none"
+                            }}
+                          >
+                            ✔
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Title & Province */}
