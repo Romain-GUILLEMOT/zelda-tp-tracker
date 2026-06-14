@@ -2,12 +2,7 @@ import fs from "fs";
 import path from "path";
 import { neon } from "@neondatabase/serverless";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-const DB_PATH = path.join(DATA_DIR, "tracker.db");
+const DB_PATH = path.join(process.cwd(), "data", "tracker.db");
 
 export interface TrackerState {
   selectedGame: string;
@@ -40,6 +35,12 @@ async function initDb() {
     }
   } else {
     try {
+      // Create local data directory only when running locally
+      const DATA_DIR = path.join(process.cwd(), "data");
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+
       const Database = require("better-sqlite3");
       const db = new Database(DB_PATH);
       db.exec(`
