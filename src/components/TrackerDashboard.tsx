@@ -6,7 +6,7 @@ import { heartPieces, poeSouls, goldenBugs, Collectible } from "@/data/collectib
 import { itemsData } from "@/data/itemsData";
 import { mirrorDirections } from "@/utils/directions";
 
-type TabType = "hearth" | "souls" | "bugs" | "zones";
+type TabType = "inventory" | "hearth" | "souls" | "bugs" | "zones";
 type ThemeType = "dark" | "light";
 
 interface InitialState {
@@ -149,6 +149,12 @@ const getProvinceKey = (location: string): string => {
 };
 
 // Inline SVG components instead of emojis for professional UI
+const InventoryIcon = () => (
+  <svg fill="currentColor" viewBox="0 0 24 24" style={{ width: "16px", height: "16px", flexShrink: 0 }}>
+    <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
+  </svg>
+);
+
 const HeartIcon = () => (
   <svg fill="currentColor" viewBox="0 0 24 24" style={{ width: "16px", height: "16px", flexShrink: 0 }}>
     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -178,7 +184,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
   const [checkedItems, setCheckedItems] = useState<string[]>(initialState.checkedItems);
   const [checkedCollectibles, setCheckedCollectibles] = useState<string[]>(initialState.checkedCollectibles);
   const [checkedRegions, setCheckedRegions] = useState<string[]>(initialState.checkedRegions);
-  const [activeTab, setActiveTab] = useState<TabType>("hearth");
+  const [activeTab, setActiveTab] = useState<TabType>("inventory");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showOnlyObtainable, setShowOnlyObtainable] = useState<boolean>(false);
   const [hideCompleted, setHideCompleted] = useState<boolean>(false);
@@ -415,8 +421,9 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
       {/* Sidebar: Link's Inventory & Game Settings */}
       <aside className="sidebar-panel border-rgds-card bg-rgds-bg-2 p-md flex flex-col justify-start border-b md:border-r md:border-b-0 md:h-screen md:overflow-y-auto shrink-0">
         
-        {/* Game Title & Theme & Lang Switch */}
-        <div className="mb-md flex items-center justify-between">
+        {/* Game Title Logo Row and Settings Switchers Row */}
+        <div className="mb-lg flex flex-col gap-sm">
+          {/* Logo Row */}
           <div className="logo-container">
             <img 
               src="https://s3.romain-guillemot.dev/assets/logos/logo.svg" 
@@ -435,21 +442,20 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
             />
           </div>
           
-          <div className="flex-row gap-xs items-center" style={{ display: "flex" }}>
-            {/* Lang button */}
+          {/* Theme & Language Controls Row (Spaced out below logo) */}
+          <div className="flex-row gap-sm items-center mt-xs" style={{ display: "flex" }}>
             <button 
               onClick={() => handleLangChange(lang === "fr" ? "en" : "fr")}
-              className="flex items-center justify-center rounded-md border-rgds-100 bg-rgds-card text-xs font-bold text-rgds-100 hover:bg-rgds-500 hover:text-rgds-white transition-default"
-              style={{ width: "32px", height: "32px", borderWidth: "1px" }}
+              className="flex items-center justify-center rounded-md border-rgds-card bg-rgds-card text-xs font-bold text-rgds-100 hover:bg-rgds-500 hover:text-rgds-white transition-default"
+              style={{ width: "36px", height: "36px", borderWidth: "1px" }}
               title="Change Language"
             >
               {lang.toUpperCase()}
             </button>
-            {/* Theme button */}
             <button 
               onClick={toggleTheme}
-              className="flex items-center justify-center rounded-md border-rgds-100 bg-rgds-card text-xs text-rgds-100 hover:bg-rgds-500 hover:text-rgds-white transition-default"
-              style={{ width: "32px", height: "32px", borderWidth: "1px" }}
+              className="flex items-center justify-center rounded-md border-rgds-card bg-rgds-card text-xs text-rgds-100 hover:bg-rgds-500 hover:text-rgds-white transition-default"
+              style={{ width: "36px", height: "36px", borderWidth: "1px" }}
               title="Toggle Theme"
             >
               {theme === "dark" ? "☀️" : "🌙"}
@@ -457,8 +463,8 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
           </div>
         </div>
 
-        {/* Game Version Selector */}
-        <div className="mb-md">
+        {/* Game Version Selector (With margin top and bottom for spacing) */}
+        <div className="my-lg" style={{ marginTop: "24px", marginBottom: "24px" }}>
           <label className="mb-xs block text-xs font-semibold uppercase tracking-wider text-rgds-300">
             {translations[lang].gameVersion}
           </label>
@@ -538,46 +544,6 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
           </div>
         </div>
 
-        {/* Link's Inventory (Logical categories) */}
-        <div className="mb-md">
-          <div className="mb-sm flex items-center justify-between border-rgds-card pb-xs" style={{ borderWidth: "0 0 1px 0" }}>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-rgds-300">
-              {translations[lang].inventory}
-            </h2>
-            <Badge tone="info" variant="outline" size="sm">
-              {checkedItems.length} / {itemsData.length}
-            </Badge>
-          </div>
-
-          <div className="flex-col gap-md" style={{ display: "flex" }}>
-            {categories.map((cat) => {
-              const catItems = itemsData.filter((i) => i.category === cat);
-              return (
-                <div key={cat}>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-rgds-300 block mb-xs">
-                    {translations[lang].itemCategories[cat]}
-                  </span>
-                  <div className="grid-cols-4 gap-sm" style={{ display: "grid" }}>
-                    {catItems.map((item) => {
-                      const isChecked = checkedItems.includes(item.id);
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => handleItemToggle(item.id)}
-                          className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
-                          title={lang === "fr" ? item.name : item.englishName}
-                        >
-                          <img src={item.iconPath} alt={item.name} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Reset Actions */}
         <Button
           content={translations[lang].resetBtn}
@@ -586,27 +552,25 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
           onClick={handleResetProgress}
           className="w-full"
         />
-
-        {/* Sync Indicator */}
-        <div className="mt-sm flex items-center justify-center gap-xs text-[11px] text-rgds-300" style={{ opacity: 0.6 }}>
-          <span 
-            className={`inline-block rounded-full`} 
-            style={{ 
-              width: "8px", 
-              height: "8px", 
-              backgroundColor: isSaving ? "var(--rgds-warning)" : "var(--rgds-success)",
-              animation: isSaving ? "pulse 1.5s infinite" : "none"
-            }} 
-          />
-          <span>{isSaving ? translations[lang].saving : translations[lang].synced}</span>
-        </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 p-md md:p-lg overflow-y-auto flex flex-col">
         
-        {/* Navigation Tabs (SVG icons replaced emojis) */}
+        {/* Navigation Tabs (SVG icons, clean layout) */}
         <div className="mb-md flex-row gap-sm pb-sm border-rgds-card" style={{ display: "flex", flexWrap: "wrap", borderWidth: "0 0 1px 0" }}>
+          <button
+            onClick={() => { setActiveTab("inventory"); }}
+            className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
+              activeTab === "inventory"
+                ? "bg-rgds-100 text-rgds-dark shadow-md"
+                : "bg-rgds-card text-rgds border-rgds-card hover:bg-rgds-500 hover:text-rgds-white border-xs"
+            }`}
+          >
+            <InventoryIcon />
+            <span>{translations[lang].inventory}</span>
+          </button>
+
           <button
             onClick={() => { setActiveTab("hearth"); setSelectedProvince("All"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
@@ -656,8 +620,60 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
           </button>
         </div>
 
+        {/* Tab Content: Link's Inventory (Onglet à part entière, images en grand) */}
+        {activeTab === "inventory" && (
+          <div className="flex-col gap-lg" style={{ display: "flex" }}>
+            <div className="flex items-center justify-between border-rgds-card pb-sm" style={{ borderWidth: "0 0 1px 0" }}>
+              <h2 className="text-lg font-bold text-rgds-white font-sans">
+                {translations[lang].inventory}
+              </h2>
+              <Badge tone="info" variant="solid" size="md">
+                {checkedItems.length} / {itemsData.length}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+              {categories.map((cat) => {
+                const catItems = itemsData.filter((i) => i.category === cat);
+                return (
+                  <div key={cat} className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
+                      {translations[lang].itemCategories[cat]}
+                    </h3>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-md">
+                      {catItems.map((item) => {
+                        const isChecked = checkedItems.includes(item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => handleItemToggle(item.id)}
+                            className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
+                            title={lang === "fr" ? item.name : item.englishName}
+                            style={{
+                              width: "60px",
+                              height: "60px",
+                              padding: "8px",
+                              backgroundColor: "var(--rgds-bg-1)"
+                            }}
+                          >
+                            <img 
+                              src={item.iconPath} 
+                              alt={item.name}
+                              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Filters Panel */}
-        {activeTab !== "zones" && (
+        {activeTab !== "zones" && activeTab !== "inventory" && (
           <div className="mb-md p-md rounded-md border-rgds-card bg-rgds-card" style={{ borderWidth: "1px" }}>
             <div className="filter-grid">
               
