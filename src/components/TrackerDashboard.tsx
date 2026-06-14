@@ -239,6 +239,43 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
   // Debounce ref to avoid blocking UI and flooding Neon connections
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Persistence for filters and selected province
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    const savedObtainable = localStorage.getItem("rg_gt_obtainable_only");
+    if (savedObtainable !== null) {
+      setShowOnlyObtainable(savedObtainable === "true");
+    }
+    const savedHideCompleted = localStorage.getItem("rg_gt_hide_completed");
+    if (savedHideCompleted !== null) {
+      setHideCompleted(savedHideCompleted === "true");
+    }
+    const savedProvince = localStorage.getItem("rg_gt_selected_province");
+    if (savedProvince !== null) {
+      setSelectedProvince(savedProvince);
+    }
+    isMountedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (isMountedRef.current) {
+      localStorage.setItem("rg_gt_obtainable_only", String(showOnlyObtainable));
+    }
+  }, [showOnlyObtainable]);
+
+  useEffect(() => {
+    if (isMountedRef.current) {
+      localStorage.setItem("rg_gt_hide_completed", String(hideCompleted));
+    }
+  }, [hideCompleted]);
+
+  useEffect(() => {
+    if (isMountedRef.current) {
+      localStorage.setItem("rg_gt_selected_province", selectedProvince);
+    }
+  }, [selectedProvince]);
+
   // Optimistic/Debounced Save helper
   const debouncedSave = (
     updatedGame: string,
@@ -496,12 +533,27 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
   // Global static totals (absolute count in game, does not wrap based on selected regions)
   const totalHPsGlobal = heartPieces.length;
   const collectedHPsGlobal = heartPieces.filter(hp => checkedCollectibles.includes(hp.id)).length;
+  const obtainableHPsGlobal = heartPieces.filter(hp => 
+    !checkedCollectibles.includes(hp.id) && 
+    isObtainable(hp.conditions) && 
+    checkedRegions.includes(getProvinceKey(hp.location))
+  ).length;
 
   const totalPoesGlobal = poeSouls.length;
   const collectedPoesGlobal = poeSouls.filter(poe => checkedCollectibles.includes(poe.id)).length;
+  const obtainablePoesGlobal = poeSouls.filter(poe => 
+    !checkedCollectibles.includes(poe.id) && 
+    isObtainable(poe.conditions) && 
+    checkedRegions.includes(getProvinceKey(poe.location))
+  ).length;
 
   const totalBugsGlobal = goldenBugs.length;
   const collectedBugsGlobal = goldenBugs.filter(bug => checkedCollectibles.includes(bug.id)).length;
+  const obtainableBugsGlobal = goldenBugs.filter(bug => 
+    !checkedCollectibles.includes(bug.id) && 
+    isObtainable(bug.conditions) && 
+    checkedRegions.includes(getProvinceKey(bug.location))
+  ).length;
 
   // Aggregate completion data per Province
   const getProvinceStats = (provinceKey: string) => {
@@ -615,7 +667,12 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
           <div className="mb-sm progress-tooltip-container">
             <div className="flex justify-between items-center text-xs font-semibold mb-xs">
               <span className="text-rgds">{translations[lang].statsHearts}</span>
-              <span className="text-rgds-100 font-bold">{collectedHPsGlobal} / {totalHPsGlobal}</span>
+              <span className="text-rgds-100 font-bold">
+                {collectedHPsGlobal} / {totalHPsGlobal}
+                <span className="text-[10px] text-rgds-300 font-normal ml-xs">
+                  ({obtainableHPsGlobal} {lang === "fr" ? "dispo" : "avail."})
+                </span>
+              </span>
             </div>
             <ProgressBar
               value={collectedHPsGlobal}
@@ -651,7 +708,12 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
           <div className="mb-sm progress-tooltip-container">
             <div className="flex justify-between items-center text-xs font-semibold mb-xs">
               <span className="text-rgds">{translations[lang].statsPoes}</span>
-              <span className="text-rgds-warning font-bold">{collectedPoesGlobal} / {totalPoesGlobal}</span>
+              <span className="text-rgds-warning font-bold">
+                {collectedPoesGlobal} / {totalPoesGlobal}
+                <span className="text-[10px] text-rgds-300 font-normal ml-xs">
+                  ({obtainablePoesGlobal} {lang === "fr" ? "dispo" : "avail."})
+                </span>
+              </span>
             </div>
             <ProgressBar
               value={collectedPoesGlobal}
@@ -687,7 +749,12 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
           <div className="progress-tooltip-container">
             <div className="flex justify-between items-center text-xs font-semibold mb-xs">
               <span className="text-rgds">{translations[lang].statsBugs}</span>
-              <span className="text-rgds-success font-bold">{collectedBugsGlobal} / {totalBugsGlobal}</span>
+              <span className="text-rgds-success font-bold">
+                {collectedBugsGlobal} / {totalBugsGlobal}
+                <span className="text-[10px] text-rgds-300 font-normal ml-xs">
+                  ({obtainableBugsGlobal} {lang === "fr" ? "dispo" : "avail."})
+                </span>
+              </span>
             </div>
             <ProgressBar
               value={collectedBugsGlobal}
@@ -828,7 +895,7 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
           </button>
 
           <button
-            onClick={() => { changeTab("hearth"); setSelectedProvince("All"); }}
+            onClick={() => { changeTab("hearth"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "hearth"
                 ? "bg-rgds-100 text-rgds-dark shadow-md"
@@ -840,7 +907,7 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
           </button>
           
           <button
-            onClick={() => { changeTab("souls"); setSelectedProvince("All"); }}
+            onClick={() => { changeTab("souls"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "souls"
                 ? "bg-rgds-warning text-rgds-dark shadow-md"
@@ -852,7 +919,7 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
           </button>
           
           <button
-            onClick={() => { changeTab("bugs"); setSelectedProvince("All"); }}
+            onClick={() => { changeTab("bugs"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "bugs"
                 ? "bg-rgds-success text-rgds-dark shadow-md"
@@ -864,7 +931,7 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
           </button>
           
           <button
-            onClick={() => { changeTab("zones"); setSelectedProvince("All"); }}
+            onClick={() => { changeTab("zones"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "zones"
                 ? "bg-rgds-white text-rgds-dark shadow-md"
