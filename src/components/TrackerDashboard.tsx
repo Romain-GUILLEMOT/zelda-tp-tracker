@@ -704,23 +704,23 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
 
         </div>
 
-        {/* Reset Actions */}
-        <Button
-          content={translations[lang].resetBtn}
-          type="danger"
-          size="sm"
-          onClick={triggerResetModal}
-          className="w-full"
-        />
-
-        {/* Footer info: Copyright and User Unique ID */}
-        <div className="mt-auto pt-lg text-center" style={{ borderTop: "1px solid var(--rgds-card-border)", marginTop: "auto" }}>
-          <p className="text-[10px] text-rgds-300 font-mono select-all mb-xs break-all">
-            {translations[lang].userIdLabel}: {userId}
-          </p>
-          <p className="text-[10px] text-rgds-300">
-            &copy; 2026 Romain GUILLEMOT
-          </p>
+        {/* Reset Actions and Footer (aligned together) */}
+        <div className="w-full flex-col gap-xs mt-md" style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "16px" }}>
+          <Button
+            content={translations[lang].resetBtn}
+            type="danger"
+            size="sm"
+            onClick={triggerResetModal}
+            className="w-full"
+          />
+          <div className="text-center pt-xs" style={{ marginTop: "6px" }}>
+            <p className="text-[10px] text-rgds-300 font-semibold">
+              &copy; 2026 Romain GUILLEMOT
+            </p>
+            <p className="text-[9px] text-rgds-300 font-mono select-all break-all opacity-75" style={{ marginTop: "4px" }}>
+              {translations[lang].userIdLabel}: {userId}
+            </p>
+          </div>
         </div>
       </aside>
 
@@ -859,21 +859,46 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
           </button>
         </div>
 
-        {/* Tab Content: Advanced Inventory (Link's Inventory + Provinces side-by-side) */}
+        {/* Tab Content: Advanced Inventory (Unlocked Provinces at top, Items below) */}
         {activeTab === "inventory" && (
-          <div className="flex-col gap-lg" style={{ display: "flex" }}>
-            <div className="flex items-center justify-between border-rgds-card pb-sm" style={{ borderWidth: "0 0 1px 0" }}>
-              <h2 className="text-lg font-bold text-rgds font-sans">
-                {translations[lang].inventory}
-              </h2>
-              <Badge tone="info" variant="solid" size="md">
-                {checkedItems.length} / {itemsData.length}
-              </Badge>
+          <div className="flex-col gap-lg" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            
+            {/* Unlocked Provinces Checklist (Full-width card, 3 items per line) */}
+            <div className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-xs pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
+                {translations[lang].unlockedRegions}
+              </h3>
+              <p className="text-xs text-rgds-300 mb-md" style={{ marginBottom: "12px" }}>
+                {lang === "fr" 
+                  ? "Sélectionnez les provinces pour afficher les collectibles correspondants." 
+                  : "Select provinces to reveal their associated collectibles."}
+              </p>
+              <div className="provinces-grid">
+                {regionsList.map((r) => (
+                  <div key={r.key} className="flex items-center py-xs px-sm rounded-md bg-rgds-bg-1/40 hover:bg-rgds-bg-1/70 transition-default" style={{ padding: "8px 12px", borderRadius: "6px" }}>
+                    <Checkbox
+                      checked={checkedRegions.includes(r.key)}
+                      onChange={(checked) => handleRegionToggle(r.key, checked)}
+                      label={lang === "fr" ? r.labelFr : r.labelEn}
+                      size="medium"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg" style={{ display: "grid", gap: "24px" }}>
-              {/* Left part: Item categories (takes 2 columns on large screen) */}
-              <div className="lg:col-span-2 flex flex-col gap-lg" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Link's Items Grid */}
+            <div>
+              <div className="flex items-center justify-between border-rgds-card pb-sm" style={{ borderWidth: "0 0 1px 0", marginBottom: "16px" }}>
+                <h2 className="text-lg font-bold text-rgds font-sans">
+                  {lang === "fr" ? "Objets de Link" : "Link's Items"}
+                </h2>
+                <Badge tone="info" variant="solid" size="md">
+                  {checkedItems.length} / {itemsData.length}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-lg" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
                 {categories.map((cat) => {
                   const catItems = itemsData.filter((i) => i.category === cat);
                   return (
@@ -885,24 +910,28 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                         {catItems.map((item) => {
                           const isChecked = checkedItems.includes(item.id);
                           return (
-                            <button
-                              key={item.id}
-                              onClick={() => handleItemToggle(item.id)}
-                              className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
-                              title={lang === "fr" ? item.name : item.englishName}
-                              style={{
-                                width: "60px",
-                                height: "60px",
-                                padding: "8px",
-                                backgroundColor: "var(--rgds-bg-1)"
-                              }}
-                            >
-                              <img 
-                                src={item.iconPath} 
-                                alt={item.name}
-                                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                              />
-                            </button>
+                            <div key={item.id} className="group-inventory-tooltip">
+                              <button
+                                onClick={() => handleItemToggle(item.id)}
+                                className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
+                                style={{
+                                  width: "60px",
+                                  height: "60px",
+                                  padding: "8px",
+                                  backgroundColor: "var(--rgds-bg-1)"
+                                }}
+                              >
+                                <img 
+                                  src={item.iconPath} 
+                                  alt={item.name}
+                                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                />
+                              </button>
+                              {/* Custom premium tooltip */}
+                              <div className="inventory-tooltip text-xs font-semibold">
+                                {lang === "fr" ? item.name : item.englishName}
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
@@ -910,31 +939,8 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                   );
                 })}
               </div>
-
-              {/* Right part: Unlocked Provinces checklist (takes 1 column) */}
-              <div className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card h-fit" style={{ height: "fit-content" }}>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
-                  {translations[lang].unlockedRegions}
-                </h3>
-                <p className="text-xs text-rgds-300 mb-md" style={{ marginBottom: "16px" }}>
-                  {lang === "fr" 
-                    ? "Sélectionnez les provinces pour afficher les collectibles correspondants." 
-                    : "Select provinces to reveal their associated collectibles."}
-                </p>
-                <div className="flex-col gap-xs" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {regionsList.map((r) => (
-                    <div key={r.key} className="flex items-center py-xs px-sm rounded-md bg-rgds-bg-1/40 hover:bg-rgds-bg-1/70 transition-default" style={{ padding: "8px 12px", borderRadius: "6px" }}>
-                      <Checkbox
-                        checked={checkedRegions.includes(r.key)}
-                        onChange={(checked) => handleRegionToggle(r.key, checked)}
-                        label={lang === "fr" ? r.labelFr : r.labelEn}
-                        size="medium"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
+
           </div>
         )}
 

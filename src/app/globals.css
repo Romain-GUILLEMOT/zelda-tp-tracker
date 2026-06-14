@@ -384,5 +384,55 @@ a, button {
   to { opacity: 1; }
 }
 
+/* Provinces Grid layout: 3 per row on MD+ screens */
+.provinces-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 480px) {
+  .provinces-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 768px) {
+  .provinces-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Premium Inventory Hover Tooltips */
+.group-inventory-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.inventory-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 115%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--rgds-bg-2);
+  border: 1px solid var(--rgds-card-border);
+  color: var(--rgds-text);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 10000;
+  pointer-events: none;
+  transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.group-inventory-tooltip:hover .inventory-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+
 
 
