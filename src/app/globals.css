@@ -162,8 +162,8 @@ a, button {
 }
 
 .inventory-slot.inactive img {
-  opacity: 0.2;
-  filter: grayscale(100%) brightness(0.6);
+  opacity: 0.35;
+  filter: grayscale(100%);
 }
 
 .inventory-slot.active img {
