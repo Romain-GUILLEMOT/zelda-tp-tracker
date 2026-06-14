@@ -433,6 +433,49 @@ a, button {
   opacity: 1;
 }
 
+/* Responsive inventory categories row: side-by-side on large screens */
+.inventory-categories-row {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 20px;
+}
+@media (min-width: 640px) {
+  .inventory-categories-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1200px) {
+  .inventory-categories-row {
+    grid-template-columns: 2.2fr 1fr 1.2fr 1fr;
+  }
+}
+
+/* Specific item grids inside inventory categories */
+.active-items-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bombs-items-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gear-items-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quest-items-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+
 
 
 
