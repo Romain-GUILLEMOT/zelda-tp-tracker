@@ -714,10 +714,10 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
             className="w-full"
           />
           <div className="text-center pt-xs" style={{ marginTop: "6px" }}>
-            <p className="text-[10px] text-rgds-300 font-semibold">
+            <p className="text-[10px] text-rgds-300 font-semibold" style={{ opacity: 0.85 }}>
               &copy; 2026 Romain GUILLEMOT
             </p>
-            <p className="text-[9px] text-rgds-300 font-mono select-all break-all opacity-75" style={{ marginTop: "4px" }}>
+            <p className="font-mono select-all break-all" style={{ fontSize: "8px", opacity: 0.25, marginTop: "4px", color: "var(--rgds-text)" }}>
               {translations[lang].userIdLabel}: {userId}
             </p>
           </div>
@@ -898,46 +898,152 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-lg" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
-                {categories.map((cat) => {
-                  const catItems = itemsData.filter((i) => i.category === cat);
-                  return (
-                    <div key={cat} className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
-                        {translations[lang].itemCategories[cat]}
-                      </h3>
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-md" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: "12px" }}>
-                        {catItems.map((item) => {
-                          const isChecked = checkedItems.includes(item.id);
-                          return (
-                            <div key={item.id} className="group-inventory-tooltip">
-                              <button
-                                onClick={() => handleItemToggle(item.id)}
-                                className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
-                                style={{
-                                  width: "60px",
-                                  height: "60px",
-                                  padding: "8px",
-                                  backgroundColor: "var(--rgds-bg-1)"
-                                }}
-                              >
-                                <img 
-                                  src={item.iconPath} 
-                                  alt={item.name}
-                                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                                />
-                              </button>
-                              {/* Custom premium tooltip */}
-                              <div className="inventory-tooltip text-xs font-semibold">
-                                {lang === "fr" ? item.name : item.englishName}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="inventory-categories-row">
+                
+                {/* Active Items (4 per row) */}
+                <div className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
+                    {translations[lang].itemCategories["active"]}
+                  </h3>
+                  <div className="active-items-grid">
+                    {itemsData.filter(i => i.category === "active").map((item) => {
+                      const isChecked = checkedItems.includes(item.id);
+                      return (
+                        <div key={item.id} className="group-inventory-tooltip">
+                          <button
+                            onClick={() => handleItemToggle(item.id)}
+                            className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
+                            style={{
+                              width: "60px",
+                              height: "60px",
+                              padding: "8px",
+                              backgroundColor: "var(--rgds-bg-1)"
+                            }}
+                          >
+                            <img 
+                              src={item.iconPath} 
+                              alt={item.name}
+                              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                            />
+                          </button>
+                          {/* Custom premium tooltip */}
+                          <div className="inventory-tooltip text-xs font-semibold">
+                            {lang === "fr" ? item.name : item.englishName}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bombs (2 per row) */}
+                <div className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
+                    {translations[lang].itemCategories["bombs"]}
+                  </h3>
+                  <div className="bombs-items-grid">
+                    {itemsData.filter(i => i.category === "bombs").map((item) => {
+                      const isChecked = checkedItems.includes(item.id);
+                      return (
+                        <div key={item.id} className="group-inventory-tooltip">
+                          <button
+                            onClick={() => handleItemToggle(item.id)}
+                            className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
+                            style={{
+                              width: "60px",
+                              height: "60px",
+                              padding: "8px",
+                              backgroundColor: "var(--rgds-bg-1)"
+                            }}
+                          >
+                            <img 
+                              src={item.iconPath} 
+                              alt={item.name}
+                              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                            />
+                          </button>
+                          {/* Custom premium tooltip */}
+                          <div className="inventory-tooltip text-xs font-semibold">
+                            {lang === "fr" ? item.name : item.englishName}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Gear (3 per row) */}
+                <div className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
+                    {translations[lang].itemCategories["gear"]}
+                  </h3>
+                  <div className="gear-items-grid">
+                    {itemsData.filter(i => i.category === "gear").map((item) => {
+                      const isChecked = checkedItems.includes(item.id);
+                      return (
+                        <div key={item.id} className="group-inventory-tooltip">
+                          <button
+                            onClick={() => handleItemToggle(item.id)}
+                            className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
+                            style={{
+                              width: "60px",
+                              height: "60px",
+                              padding: "8px",
+                              backgroundColor: "var(--rgds-bg-1)"
+                            }}
+                          >
+                            <img 
+                              src={item.iconPath} 
+                              alt={item.name}
+                              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                            />
+                          </button>
+                          {/* Custom premium tooltip */}
+                          <div className="inventory-tooltip text-xs font-semibold">
+                            {lang === "fr" ? item.name : item.englishName}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Quest Progress (2 per row) */}
+                <div className="p-md rounded-lg border-xs border-rgds-card bg-rgds-card">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-rgds-100 mb-md pb-xs border-rgds-card" style={{ borderWidth: "0 0 1px 0" }}>
+                    {translations[lang].itemCategories["quest"]}
+                  </h3>
+                  <div className="quest-items-grid">
+                    {itemsData.filter(i => i.category === "quest").map((item) => {
+                      const isChecked = checkedItems.includes(item.id);
+                      return (
+                        <div key={item.id} className="group-inventory-tooltip">
+                          <button
+                            onClick={() => handleItemToggle(item.id)}
+                            className={`inventory-slot ${isChecked ? "active" : "inactive"}`}
+                            style={{
+                              width: "60px",
+                              height: "60px",
+                              padding: "8px",
+                              backgroundColor: "var(--rgds-bg-1)"
+                            }}
+                          >
+                            <img 
+                              src={item.iconPath} 
+                              alt={item.name}
+                              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                            />
+                          </button>
+                          {/* Custom premium tooltip */}
+                          <div className="inventory-tooltip text-xs font-semibold">
+                            {lang === "fr" ? item.name : item.englishName}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -1004,7 +1110,8 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                 return (
                   <div
                     key={hp.id}
-                    className={`collectible-card relative flex flex-col rounded-lg border-xs overflow-hidden ${
+                    onClick={() => handleCollectibleToggle(hp.id)}
+                    className={`collectible-card relative flex flex-col rounded-lg border-xs overflow-hidden cursor-pointer select-none ${
                       checked ? "checked" : obtainable ? "obtainable" : "locked"
                     }`}
                   >
@@ -1043,9 +1150,8 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                         </div>
                       )}
                       
-                      {/* Checkbox trigger overlay on image */}
-                      <button
-                        onClick={() => handleCollectibleToggle(hp.id)}
+                      {/* Checkmark overlay (non-clickable indicator) */}
+                      <div
                         className="absolute transition-default flex items-center justify-center rounded-full"
                         style={{
                           top: "12px",
@@ -1057,12 +1163,12 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                           borderColor: checked ? "var(--rgds-success)" : "rgb(255 255 255 / 0.3)",
                           backgroundColor: checked ? "var(--rgds-success)" : "var(--rgds-bg-2)",
                           color: checked ? "var(--rgds-dark)" : "var(--rgds-white)",
-                          cursor: "pointer",
-                          zIndex: 10
+                          zIndex: 10,
+                          pointerEvents: "none"
                         }}
                       >
                         ✔
-                      </button>
+                      </div>
 
                       {/* Obtainable Tag */}
                       <div className="absolute" style={{ bottom: "12px", left: "12px", zIndex: 10 }}>
@@ -1168,7 +1274,8 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                 return (
                   <div
                     key={poe.id}
-                    className={`collectible-card relative flex flex-col rounded-lg border-xs overflow-hidden ${
+                    onClick={() => handleCollectibleToggle(poe.id)}
+                    className={`collectible-card relative flex flex-col rounded-lg border-xs overflow-hidden cursor-pointer select-none ${
                       checked ? "checked" : obtainable ? "obtainable" : "locked"
                     }`}
                   >
@@ -1207,9 +1314,8 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                         </div>
                       )}
                       
-                      {/* Checkbox trigger overlay on image */}
-                      <button
-                        onClick={() => handleCollectibleToggle(poe.id)}
+                      {/* Checkmark overlay (non-clickable indicator) */}
+                      <div
                         className="absolute transition-default flex items-center justify-center rounded-full"
                         style={{
                           top: "12px",
@@ -1221,12 +1327,12 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                           borderColor: checked ? "var(--rgds-success)" : "rgb(255 255 255 / 0.3)",
                           backgroundColor: checked ? "var(--rgds-success)" : "var(--rgds-bg-2)",
                           color: checked ? "var(--rgds-dark)" : "var(--rgds-white)",
-                          cursor: "pointer",
-                          zIndex: 10
+                          zIndex: 10,
+                          pointerEvents: "none"
                         }}
                       >
                         ✔
-                      </button>
+                      </div>
 
                       {/* Obtainable Tag */}
                       <div className="absolute" style={{ bottom: "12px", left: "12px", zIndex: 10 }}>
