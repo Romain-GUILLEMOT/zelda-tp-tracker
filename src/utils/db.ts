@@ -20,7 +20,7 @@ async function initDb() {
   if (dbUrl) {
     try {
       const sql = neon(dbUrl) as any;
-      await sql(`
+      await sql.query(`
         CREATE TABLE IF NOT EXISTS user_states (
           user_id VARCHAR(255) PRIMARY KEY,
           selected_game TEXT,
@@ -72,7 +72,7 @@ export async function getState(userId: string): Promise<TrackerState> {
   if (dbUrl) {
     try {
       const sql = neon(dbUrl) as any;
-      const rows = await sql("SELECT * FROM user_states WHERE user_id = $1", [userId]);
+      const rows = await sql.query("SELECT * FROM user_states WHERE user_id = $1", [userId]);
       if (rows && rows.length > 0) {
         const row = rows[0];
         return {
@@ -124,7 +124,7 @@ export async function saveState(userId: string, state: TrackerState): Promise<vo
   if (dbUrl) {
     try {
       const sql = neon(dbUrl) as any;
-      await sql(`
+      await sql.query(`
         INSERT INTO user_states (user_id, selected_game, checked_items, checked_collectibles, checked_regions, updated_at)
         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
         ON CONFLICT (user_id) DO UPDATE SET
