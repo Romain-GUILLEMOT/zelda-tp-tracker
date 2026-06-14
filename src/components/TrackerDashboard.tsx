@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Checkbox, Switch, Button, ProgressBar, Badge } from "@rgds/react";
 import { heartPieces, poeSouls, goldenBugs, Collectible } from "@/data/collectiblesData";
 import { itemsData } from "@/data/itemsData";
@@ -19,6 +20,7 @@ interface InitialState {
 interface TrackerDashboardProps {
   initialState: InitialState;
   userId: string;
+  defaultTab?: TabType;
 }
 
 // Translations dictionary for French & English
@@ -192,17 +194,32 @@ const MapIcon = () => (
   </svg>
 );
 
-export default function TrackerDashboard({ initialState, userId }: TrackerDashboardProps) {
+export default function TrackerDashboard({ initialState, userId, defaultTab }: TrackerDashboardProps) {
   const [selectedGame, setSelectedGame] = useState<string>(initialState.selectedGame);
   const [checkedItems, setCheckedItems] = useState<string[]>(initialState.checkedItems);
   const [checkedCollectibles, setCheckedCollectibles] = useState<string[]>(initialState.checkedCollectibles);
   const [checkedRegions, setCheckedRegions] = useState<string[]>(initialState.checkedRegions);
-  const [activeTab, setActiveTab] = useState<TabType>("inventory");
+  const [activeTab, setActiveTab] = useState<TabType>(defaultTab || "inventory");
   const [showOnlyObtainable, setShowOnlyObtainable] = useState<boolean>(false);
   const [hideCompleted, setHideCompleted] = useState<boolean>(false);
   const [selectedProvince, setSelectedProvince] = useState<string>("All");
   const [theme, setTheme] = useState<ThemeType>("system");
   const [lang, setLang] = useState<"fr" | "en">("fr");
+
+  const router = useRouter();
+
+  // Tab change helper with Next.js Router
+  const changeTab = (tab: TabType) => {
+    setActiveTab(tab);
+    router.push("/" + tab);
+  };
+
+  // Derived state sync: update activeTab when defaultTab prop changes (e.g. back/forward navigation)
+  const [prevDefaultTab, setPrevDefaultTab] = useState<TabType | undefined>(defaultTab);
+  if (defaultTab !== prevDefaultTab) {
+    setPrevDefaultTab(defaultTab);
+    setActiveTab(defaultTab || "inventory");
+  }
 
   // Dialog and celebration states
   const [showResetModal, setShowResetModal] = useState<boolean>(false);
@@ -799,7 +816,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
         {/* Navigation Tabs */}
         <div className="mb-md flex-row gap-sm pb-sm border-rgds-card" style={{ display: "flex", flexWrap: "wrap", borderWidth: "0 0 1px 0" }}>
           <button
-            onClick={() => { setActiveTab("inventory"); }}
+            onClick={() => { changeTab("inventory"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "inventory"
                 ? "bg-rgds-100 text-rgds-dark shadow-md"
@@ -811,7 +828,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
           </button>
 
           <button
-            onClick={() => { setActiveTab("hearth"); setSelectedProvince("All"); }}
+            onClick={() => { changeTab("hearth"); setSelectedProvince("All"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "hearth"
                 ? "bg-rgds-100 text-rgds-dark shadow-md"
@@ -823,7 +840,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
           </button>
           
           <button
-            onClick={() => { setActiveTab("souls"); setSelectedProvince("All"); }}
+            onClick={() => { changeTab("souls"); setSelectedProvince("All"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "souls"
                 ? "bg-rgds-warning text-rgds-dark shadow-md"
@@ -835,7 +852,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
           </button>
           
           <button
-            onClick={() => { setActiveTab("bugs"); setSelectedProvince("All"); }}
+            onClick={() => { changeTab("bugs"); setSelectedProvince("All"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "bugs"
                 ? "bg-rgds-success text-rgds-dark shadow-md"
@@ -847,7 +864,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
           </button>
           
           <button
-            onClick={() => { setActiveTab("zones"); setSelectedProvince("All"); }}
+            onClick={() => { changeTab("zones"); setSelectedProvince("All"); }}
             className={`flex items-center gap-xs px-md py-xs rounded-md font-semibold text-sm transition-default ${
               activeTab === "zones"
                 ? "bg-rgds-white text-rgds-dark shadow-md"
@@ -1571,7 +1588,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                     key={r.key}
                     onClick={() => {
                       setSelectedProvince(r.key);
-                      setActiveTab("hearth"); // Switch to collectibles view
+                      changeTab("hearth"); // Switch to collectibles view
                     }}
                     className="group relative flex flex-col justify-between rounded-lg border-xs border-rgds-card bg-rgds-card p-md transition-default hover:border-rgds-100 hover:bg-rgds-card/85 cursor-pointer shadow-md hover:shadow-lg hover:-translate-y-xxs"
                   >
