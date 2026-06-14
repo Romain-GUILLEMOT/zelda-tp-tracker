@@ -1118,7 +1118,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                     {/* Card Image */}
                     <div 
                       className="relative bg-rgds-bg-2 overflow-hidden flex items-center justify-center border-rgds-card"
-                      style={{ height: "160px", borderWidth: "0 0 1px 0" }}
+                      style={{ height: "120px", borderWidth: "0 0 1px 0" }}
                     >
                       {hp.image ? (
                         <>
@@ -1284,7 +1284,7 @@ export default function TrackerDashboard({ initialState, userId }: TrackerDashbo
                     {/* Card Image */}
                     <div 
                       className="relative bg-rgds-bg-2 overflow-hidden flex items-center justify-center border-rgds-card"
-                      style={{ height: "160px", borderWidth: "0 0 1px 0" }}
+                      style={{ height: "120px", borderWidth: "0 0 1px 0" }}
                     >
                       {poe.image ? (
                         <>

@@ -53,7 +53,7 @@ export const heartPieces: Collectible[] = [
     id: "hp-6",
     index: 6,
     location: "Ordon Village",
-    conditions: [["epona"]],
+    conditions: [["horse_call"]],
     description: "After restoring light to the Eldin Province and recovering Epona, you can return to Ordon Village and help Fado herd the goats during the day. If you can manage to herd all 20 goats in under three minutes, he'll gift you with this Piece of Heart.",
     image: "/img/hearth/400px-Tp_heart_06.jpg"
   },

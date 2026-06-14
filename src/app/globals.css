@@ -64,21 +64,24 @@ a, button {
 .card-grid {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 24px;
+  gap: 12px;
 }
 @media (min-width: 640px) {
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 }
 @media (min-width: 1024px) {
   .card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
   }
 }
-@media (min-width: 1400px) {
+@media (min-width: 1200px) {
   .card-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
   }
 }
 
