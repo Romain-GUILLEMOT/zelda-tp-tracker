@@ -191,7 +191,6 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
   const [selectedProvince, setSelectedProvince] = useState<string>("All");
   const [theme, setTheme] = useState<ThemeType>("dark");
   const [lang, setLang] = useState<"fr" | "en">("fr");
-  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // Sync state if initial state props change
   useEffect(() => {
@@ -247,7 +246,6 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
     updatedCollectibles: string[],
     updatedRegions: string[]
   ) => {
-    setIsSaving(true);
     try {
       await fetch("/api/state", {
         method: "POST",
@@ -261,8 +259,6 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
       });
     } catch (err) {
       console.error("Error saving state:", err);
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -620,7 +616,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
           </button>
         </div>
 
-        {/* Tab Content: Link's Inventory (Onglet à part entière, images en grand) */}
+        {/* Tab Content: Link's Inventory */}
         {activeTab === "inventory" && (
           <div className="flex-col gap-lg" style={{ display: "flex" }}>
             <div className="flex items-center justify-between border-rgds-card pb-sm" style={{ borderWidth: "0 0 1px 0" }}>
@@ -744,16 +740,9 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                 return (
                   <div
                     key={hp.id}
-                    className={`relative flex flex-col rounded-lg border-xs overflow-hidden transition-default ${
-                      checked
-                        ? "border-rgds-success bg-rgds-card/40 opacity-80 hover:opacity-100"
-                        : obtainable
-                        ? "border-rgds-card bg-rgds-card hover:-translate-y-xxs hover:border-rgds-100"
-                        : "border-rgds-card bg-rgds-card opacity-50 hover:opacity-90"
+                    className={`collectible-card relative flex flex-col rounded-lg border-xs overflow-hidden ${
+                      checked ? "checked" : obtainable ? "obtainable" : "locked"
                     }`}
-                    style={{
-                      boxShadow: obtainable && !checked ? "0 4px 6px -1px rgb(15 163 235 / 0.05)" : "none"
-                    }}
                   >
                     {/* Card Image */}
                     <div 
@@ -761,30 +750,39 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                       style={{ height: "160px", borderWidth: "0 0 1px 0" }}
                     >
                       {hp.image ? (
-                        <img
-                          src={hp.image}
-                          alt={hp.location}
-                          className="w-full h-full object-cover transition-default"
-                          style={{ transitionDuration: "0.5s" }}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = "none";
-                            const fallback = target.nextSibling as HTMLDivElement;
-                            if (fallback) fallback.style.display = "flex";
-                          }}
-                        />
-                      ) : null}
-                      <div 
-                        className="hidden absolute inset-0 flex-col items-center justify-center text-center p-md bg-rgds-bg-2 text-rgds-300"
-                        style={{ opacity: 0.5 }}
-                      >
-                        <span className="text-sm font-semibold">{translations[lang].missingImage}</span>
-                      </div>
+                        <>
+                          <img
+                            src={hp.image}
+                            alt={hp.location}
+                            className="w-full h-full object-cover transition-default"
+                            style={{ transitionDuration: "0.5s" }}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              const fallback = target.nextSibling as HTMLDivElement;
+                              if (fallback) fallback.style.display = "flex";
+                            }}
+                          />
+                          <div 
+                            className="hidden absolute inset-0 flex-col items-center justify-center text-center p-md bg-rgds-bg-2 text-rgds-300"
+                            style={{ opacity: 0.5 }}
+                          >
+                            <span className="text-sm font-semibold">{translations[lang].missingImage}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div 
+                          className="absolute inset-0 flex-col items-center justify-center text-center p-md bg-rgds-bg-2 text-rgds-300"
+                          style={{ display: "flex", opacity: 0.5 }}
+                        >
+                          <span className="text-sm font-semibold">{translations[lang].missingImage}</span>
+                        </div>
+                      )}
                       
                       {/* Checkbox trigger overlay on image */}
                       <button
                         onClick={() => handleCollectibleToggle(hp.id)}
-                        className={`absolute transition-default flex items-center justify-center rounded-full`}
+                        className="absolute transition-default flex items-center justify-center rounded-full"
                         style={{
                           top: "12px",
                           right: "12px",
@@ -795,14 +793,15 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                           borderColor: checked ? "var(--rgds-success)" : "rgb(255 255 255 / 0.3)",
                           backgroundColor: checked ? "var(--rgds-success)" : "var(--rgds-bg-2)",
                           color: checked ? "var(--rgds-dark)" : "var(--rgds-white)",
-                          cursor: "pointer"
+                          cursor: "pointer",
+                          zIndex: 10
                         }}
                       >
                         ✔
                       </button>
 
                       {/* Obtainable Tag */}
-                      <div className="absolute" style={{ bottom: "12px", left: "12px" }}>
+                      <div className="absolute" style={{ bottom: "12px", left: "12px", zIndex: 10 }}>
                         <Badge
                           tone={checked ? "success" : obtainable ? "info" : "error"}
                           variant="solid"
@@ -905,16 +904,9 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                 return (
                   <div
                     key={poe.id}
-                    className={`relative flex flex-col rounded-lg border-xs overflow-hidden transition-default ${
-                      checked
-                        ? "border-rgds-success bg-rgds-card/40 opacity-80 hover:opacity-100"
-                        : obtainable
-                        ? "border-rgds-card bg-rgds-card hover:-translate-y-xxs hover:border-rgds-warning"
-                        : "border-rgds-card bg-rgds-card opacity-50 hover:opacity-90"
+                    className={`collectible-card relative flex flex-col rounded-lg border-xs overflow-hidden ${
+                      checked ? "checked" : obtainable ? "obtainable" : "locked"
                     }`}
-                    style={{
-                      boxShadow: obtainable && !checked ? "0 4px 6px -1px rgb(245 158 11 / 0.05)" : "none"
-                    }}
                   >
                     {/* Card Image */}
                     <div 
@@ -922,30 +914,39 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                       style={{ height: "160px", borderWidth: "0 0 1px 0" }}
                     >
                       {poe.image ? (
-                        <img
-                          src={poe.image}
-                          alt={poe.location}
-                          className="w-full h-full object-cover transition-default"
-                          style={{ transitionDuration: "0.5s" }}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = "none";
-                            const fallback = target.nextSibling as HTMLDivElement;
-                            if (fallback) fallback.style.display = "flex";
-                          }}
-                        />
-                      ) : null}
-                      <div 
-                        className="hidden absolute inset-0 flex-col items-center justify-center text-center p-md bg-rgds-bg-2 text-rgds-300"
-                        style={{ opacity: 0.5 }}
-                      >
-                        <span className="text-sm font-semibold">{translations[lang].missingImage}</span>
-                      </div>
+                        <>
+                          <img
+                            src={poe.image}
+                            alt={poe.location}
+                            className="w-full h-full object-cover transition-default"
+                            style={{ transitionDuration: "0.5s" }}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              const fallback = target.nextSibling as HTMLDivElement;
+                              if (fallback) fallback.style.display = "flex";
+                            }}
+                          />
+                          <div 
+                            className="hidden absolute inset-0 flex-col items-center justify-center text-center p-md bg-rgds-bg-2 text-rgds-300"
+                            style={{ opacity: 0.5 }}
+                          >
+                            <span className="text-sm font-semibold">{translations[lang].missingImage}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div 
+                          className="absolute inset-0 flex-col items-center justify-center text-center p-md bg-rgds-bg-2 text-rgds-300"
+                          style={{ display: "flex", opacity: 0.5 }}
+                        >
+                          <span className="text-sm font-semibold">{translations[lang].missingImage}</span>
+                        </div>
+                      )}
                       
                       {/* Checkbox trigger overlay on image */}
                       <button
                         onClick={() => handleCollectibleToggle(poe.id)}
-                        className={`absolute transition-default flex items-center justify-center rounded-full`}
+                        className="absolute transition-default flex items-center justify-center rounded-full"
                         style={{
                           top: "12px",
                           right: "12px",
@@ -956,14 +957,15 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                           borderColor: checked ? "var(--rgds-success)" : "rgb(255 255 255 / 0.3)",
                           backgroundColor: checked ? "var(--rgds-success)" : "var(--rgds-bg-2)",
                           color: checked ? "var(--rgds-dark)" : "var(--rgds-white)",
-                          cursor: "pointer"
+                          cursor: "pointer",
+                          zIndex: 10
                         }}
                       >
                         ✔
                       </button>
 
                       {/* Obtainable Tag */}
-                      <div className="absolute" style={{ bottom: "12px", left: "12px" }}>
+                      <div className="absolute" style={{ bottom: "12px", left: "12px", zIndex: 10 }}>
                         <Badge
                           tone={checked ? "success" : obtainable ? "warning" : "error"}
                           variant="solid"
@@ -1068,16 +1070,9 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                   <div
                     key={bug.id}
                     onClick={() => handleCollectibleToggle(bug.id)}
-                    className={`relative flex flex-col rounded-lg border-xs p-md transition-default cursor-pointer select-none ${
-                      checked
-                        ? "border-rgds-success bg-rgds-card/40 opacity-70 hover:opacity-100"
-                        : obtainable
-                        ? "border-rgds-card bg-rgds-card hover:-translate-y-xxs hover:border-rgds-success"
-                        : "border-rgds-card bg-rgds-card opacity-50 hover:opacity-95"
+                    className={`collectible-card relative flex flex-col rounded-lg border-xs p-md cursor-pointer select-none ${
+                      checked ? "checked" : obtainable ? "obtainable" : "locked"
                     }`}
-                    style={{
-                      boxShadow: obtainable && !checked ? "0 4px 6px -1px rgb(34 197 94 / 0.05)" : "none"
-                    }}
                   >
                     {/* Top Row: Gender and checkbox */}
                     <div className="mb-xs flex items-center justify-between">
@@ -1090,7 +1085,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                           {isMale ? "♂ Mâle" : "♀ Femelle"}
                         </Badge>
                         <span 
-                          className={`inline-block rounded-full`} 
+                          className="inline-block rounded-full" 
                           style={{ 
                             width: "10px", 
                             height: "10px", 
@@ -1108,7 +1103,7 @@ export default function TrackerDashboard({ initialState }: TrackerDashboardProps
                           e.stopPropagation();
                           handleCollectibleToggle(bug.id);
                         }}
-                        className={`flex items-center justify-center rounded-full transition-default`}
+                        className="flex items-center justify-center rounded-full transition-default"
                         style={{
                           width: "24px",
                           height: "24px",

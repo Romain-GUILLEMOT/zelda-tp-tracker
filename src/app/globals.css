@@ -171,3 +171,99 @@ a, button {
   filter: none;
 }
 
+/* Layout Utilities (Vanilla replacements for uninstalled Tailwind classes) */
+.absolute {
+  position: absolute;
+}
+
+.relative {
+  position: relative;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.object-cover {
+  object-fit: cover;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+/* Premium Collectible Card Styles */
+.collectible-card {
+  transition: all 0.25s ease-in-out;
+  box-sizing: border-box;
+}
+
+.collectible-card.locked {
+  border-color: var(--rgds-card-border);
+  background-color: var(--rgds-card);
+  opacity: 0.5;
+}
+
+.collectible-card.locked:hover {
+  opacity: 0.85;
+}
+
+.collectible-card.obtainable {
+  border-color: var(--rgds-card-border);
+  background-color: var(--rgds-card);
+}
+
+.collectible-card.obtainable:hover {
+  border-color: var(--rgds-100);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgb(15 163 235 / 0.12);
+}
+
+.collectible-card.checked {
+  border-color: var(--rgds-success) !important;
+  background-color: color-mix(in srgb, var(--rgds-success) 8%, var(--rgds-card)) !important;
+  opacity: 0.9;
+}
+
+.collectible-card.checked:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+
