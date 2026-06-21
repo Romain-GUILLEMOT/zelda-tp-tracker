@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { getState } from "@/utils/db";
 import TrackerDashboard from "@/components/TrackerDashboard";
 
@@ -23,14 +23,17 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
 
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("rg_gt_user_id")?.value;
-  const initialState = await getState(userId || "default");
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect(`/login?callbackUrl=/zelda-tp/${tab}`);
+  }
+
+  const initialState = await getState(session.user.id);
 
   return (
     <TrackerDashboard
       initialState={initialState}
-      userId={userId || "default"}
+      userId={session.user.email || session.user.name || session.user.id}
       defaultTab={tab}
       basePath="/zelda-tp"
     />

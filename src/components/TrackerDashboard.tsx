@@ -4,6 +4,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { signOut } from "next-auth/react";
+import { signIn as passkeySignIn } from "next-auth/webauthn";
 import { Checkbox, Switch, Button, ProgressBar, Badge } from "@rgds/react";
 import { heartPieces, poeSouls, goldenBugs, Collectible } from "@/data/collectiblesData";
 import { itemsData } from "@/data/itemsData";
@@ -36,6 +39,8 @@ const translations = {
     resetBtn: "Effacer la collecte",
     exportBtn: "Exporter les données",
     importBtn: "Importer les données",
+    passkeyBtn: "Ajouter une passkey",
+    signOutBtn: "Déconnexion",
     exportSuccess: "Export prêt",
     importSuccess: "Import terminé",
     importError: "Fichier invalide",
@@ -60,7 +65,7 @@ const translations = {
     confirmTitle: "Réinitialiser la progression",
     cancel: "Annuler",
     confirm: "Confirmer",
-    userIdLabel: "ID Utilisateur",
+    userIdLabel: "Compte",
     congratsTitle: "Félicitations !",
     congratsMessage: "Vous avez complété à 100% la catégorie :",
     close: "Fermer",
@@ -97,6 +102,8 @@ const translations = {
     resetBtn: "Reset progress",
     exportBtn: "Export data",
     importBtn: "Import data",
+    passkeyBtn: "Add passkey",
+    signOutBtn: "Sign out",
     exportSuccess: "Export ready",
     importSuccess: "Import complete",
     importError: "Invalid file",
@@ -121,7 +128,7 @@ const translations = {
     confirmTitle: "Reset Progress",
     cancel: "Cancel",
     confirm: "Confirm",
-    userIdLabel: "User ID",
+    userIdLabel: "Account",
     congratsTitle: "Congratulations!",
     congratsMessage: "You have completed 100% of the category:",
     close: "Close",
@@ -721,6 +728,9 @@ export default function TrackerDashboard({ initialState, userId, defaultTab, bas
               className="logo-small"
               style={{ height: "36px", width: "auto", objectFit: "contain" }}
             />
+            <Link href="/account" className="tracker-account-link" title="Compte">
+              <img src="/api/avatar" alt="" />
+            </Link>
           </div>
           
           {/* Theme & Language Controls Row */}
@@ -919,6 +929,20 @@ export default function TrackerDashboard({ initialState, userId, defaultTab, bas
           {dataTransferStatus && (
             <p className="tracker-data-status">{dataTransferStatus}</p>
           )}
+          <Button
+            content={translations[lang].passkeyBtn}
+            type="secondary"
+            size="sm"
+            onClick={() => passkeySignIn("passkey", { action: "register" })}
+            className="w-full"
+          />
+          <Button
+            content={translations[lang].signOutBtn}
+            type="ghost"
+            size="sm"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="w-full"
+          />
           <Button
             content={translations[lang].resetBtn}
             type="danger"

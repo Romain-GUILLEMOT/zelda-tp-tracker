@@ -503,6 +503,114 @@ a, button {
   padding: 24px;
 }
 
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: var(--rgds-bg-1);
+  color: var(--rgds-text);
+}
+
+.auth-card {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  background-color: var(--rgds-card);
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.22);
+}
+
+.auth-logo {
+  width: 132px;
+  height: auto;
+}
+
+.auth-heading h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.auth-heading p {
+  margin: 8px 0 0;
+  color: var(--rgds-300);
+  font-size: 14px;
+}
+
+.auth-actions,
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--rgds-300);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background-color: var(--rgds-card-border);
+}
+
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--rgds-text);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.auth-form input {
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  color: var(--rgds-text);
+  background-color: var(--rgds-bg-1);
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.auth-form input:focus {
+  outline: 2px solid var(--rgds-100);
+  outline-offset: 1px;
+  border-color: var(--rgds-100);
+}
+
+.auth-error {
+  margin: 0;
+  color: var(--rgds-error);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auth-mode-switch {
+  min-height: 36px;
+  color: var(--rgds-100);
+  background: transparent;
+  border: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .games-shell {
   width: min(1120px, 100%);
   margin: 0 auto;
@@ -534,6 +642,137 @@ a, button {
   margin: 8px 0 0;
   color: var(--rgds-text-muted, var(--rgds-300));
   font-size: 15px;
+}
+
+.games-account-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin-left: auto;
+  padding: 4px 10px 4px 4px;
+  color: var(--rgds-text);
+  text-decoration: none;
+  background-color: var(--rgds-card);
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.games-account-link img,
+.tracker-account-link img {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.tracker-account-link {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.account-page {
+  min-height: 100vh;
+  padding: 24px;
+  background-color: var(--rgds-bg-1);
+  color: var(--rgds-text);
+}
+
+.account-shell {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+  background-color: var(--rgds-card);
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 8px;
+}
+
+.account-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.account-avatar {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid var(--rgds-card-border);
+}
+
+.account-header h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.account-header p {
+  margin: 8px 0 0;
+  color: var(--rgds-300);
+}
+
+.account-form {
+  display: grid;
+  gap: 14px;
+}
+
+.account-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.account-form input {
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  color: var(--rgds-text);
+  background-color: var(--rgds-bg-1);
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.account-form input[type="file"] {
+  padding: 9px 12px;
+}
+
+.account-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.account-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  color: var(--rgds-text);
+  text-decoration: none;
+  border: 1px solid var(--rgds-card-border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.account-status {
+  margin: 0;
+  color: var(--rgds-success);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .games-grid {
@@ -627,6 +866,10 @@ a, button {
     flex-direction: column;
   }
 
+  .games-account-link {
+    margin-left: 0;
+  }
+
   .game-card {
     grid-template-columns: 1fr;
   }
@@ -635,6 +878,4 @@ a, button {
     aspect-ratio: 16 / 9;
   }
 }
-
-
 

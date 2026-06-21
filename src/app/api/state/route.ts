@@ -1,22 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { getState, saveState, TrackerState } from "@/utils/db";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const responseHeaders = new Headers();
-    let userId = request.cookies.get("rg_gt_user_id")?.value;
-    
-    if (!userId) {
-      userId = crypto.randomUUID();
-      // Set HTTP-Only cookie for 6 months (15552000 seconds)
-      responseHeaders.set(
-        "Set-Cookie",
-        `rg_gt_user_id=${userId}; Path=/; Max-Age=15552000; SameSite=Lax; HttpOnly`
-      );
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const state = await getState(userId);
-    return NextResponse.json(state, { headers: responseHeaders });
+    const state = await getState(session.user.id);
+    return NextResponse.json(state);
   } catch (error: any) {
     console.error("Error in GET state API:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -25,21 +19,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const responseHeaders = new Headers();
-    let userId = request.cookies.get("rg_gt_user_id")?.value;
-    
-    if (!userId) {
-      userId = crypto.randomUUID();
-      responseHeaders.set(
-        "Set-Cookie",
-        `rg_gt_user_id=${userId}; Path=/; Max-Age=15552000; SameSite=Lax; HttpOnly`
-      );
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const state = await request.json() as TrackerState;
-    await saveState(userId, state);
+    await saveState(session.user.id, state);
 
-    return NextResponse.json({ success: true }, { headers: responseHeaders });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Error in POST state API:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,7 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { gamesData } from "@/data/gamesData";
 
-export default function Page() {
+export default async function Page() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
   return (
     <main className="games-page bg-rgds-bg-1 text-rgds">
       <section className="games-shell">
@@ -15,6 +22,10 @@ export default function Page() {
             <h1>Game Track</h1>
             <p>Choisis un jeu pour reprendre ou importer ta progression.</p>
           </div>
+          <Link href="/account" className="games-account-link">
+            <img src="/api/avatar" alt="" />
+            <span>Compte</span>
+          </Link>
         </header>
 
         <div className="games-grid">

@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ReactNode } from "react";
+import AuthSessionProvider from "@/components/AuthSessionProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Zelda Twilight Princess Collectibles Tracker",
-  description: "Suivez vos fragments de coeur, âmes de spectres et insectes dorés dans Twilight Princess",
+  title: "RG GT",
+  description: "Romain GUILLEMOT - Game tracker",
+  icons: {
+    icon: "https://s3.romain-guillemot.dev/assets/logos/logo_min.png",
+  },
 };
 
 interface RootLayoutProps {
@@ -27,7 +31,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AuthSessionProvider>{children}</AuthSessionProvider>
+      </body>
     </html>
   );
 }
