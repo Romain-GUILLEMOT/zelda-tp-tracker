@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Checkbox, Switch, Button, ProgressBar, Badge } from "@rgds/react";
@@ -21,6 +23,7 @@ interface TrackerDashboardProps {
   initialState: InitialState;
   userId: string;
   defaultTab?: TabType;
+  basePath?: string;
 }
 
 // Translations dictionary for French & English
@@ -31,6 +34,11 @@ const translations = {
     unlockedRegions: "Provinces Débloquées",
     inventory: "Inventaire",
     resetBtn: "Effacer la collecte",
+    exportBtn: "Exporter les données",
+    importBtn: "Importer les données",
+    exportSuccess: "Export prêt",
+    importSuccess: "Import terminé",
+    importError: "Fichier invalide",
     resetConfirm: "Voulez-vous vraiment réinitialiser toute votre progression de collecte ?",
     saving: "Sauvegarde...",
     synced: "Données synchronisées",
@@ -87,6 +95,11 @@ const translations = {
     unlockedRegions: "Unlocked Provinces",
     inventory: "Inventory",
     resetBtn: "Reset progress",
+    exportBtn: "Export data",
+    importBtn: "Import data",
+    exportSuccess: "Export ready",
+    importSuccess: "Import complete",
+    importError: "Invalid file",
     resetConfirm: "Are you sure you want to reset all your collectible progress?",
     saving: "Saving...",
     synced: "Data synced",
@@ -194,7 +207,7 @@ const MapIcon = () => (
   </svg>
 );
 
-export default function TrackerDashboard({ initialState, userId, defaultTab }: TrackerDashboardProps) {
+export default function TrackerDashboard({ initialState, userId, defaultTab, basePath = "" }: TrackerDashboardProps) {
   const [selectedGame, setSelectedGame] = useState<string>(initialState.selectedGame);
   const [checkedItems, setCheckedItems] = useState<string[]>(initialState.checkedItems);
   const [checkedCollectibles, setCheckedCollectibles] = useState<string[]>(initialState.checkedCollectibles);
@@ -205,13 +218,15 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
   const [selectedProvince, setSelectedProvince] = useState<string>("All");
   const [theme, setTheme] = useState<ThemeType>("system");
   const [lang, setLang] = useState<"fr" | "en">("fr");
+  const [dataTransferStatus, setDataTransferStatus] = useState<string>("");
 
   const router = useRouter();
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   // Tab change helper with Next.js Router
   const changeTab = (tab: TabType) => {
     setActiveTab(tab);
-    router.push("/" + tab);
+    router.push(`${basePath}/${tab}`);
   };
 
   // Derived state sync: update activeTab when defaultTab prop changes (e.g. back/forward navigation)
@@ -302,6 +317,29 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
         console.error("Error saving state:", err);
       }
     }, 800);
+  };
+
+  const saveNow = async (
+    updatedGame: string,
+    updatedItems: string[],
+    updatedCollectibles: string[],
+    updatedRegions: string[]
+  ) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    await fetch("/api/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        selectedGame: updatedGame,
+        checkedItems: updatedItems,
+        checkedCollectibles: updatedCollectibles,
+        checkedRegions: updatedRegions,
+      }),
+    });
   };
 
   // Sync state if initial state props change
@@ -479,6 +517,71 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
     const newGame = e.target.value;
     setSelectedGame(newGame);
     debouncedSave(newGame, checkedItems, checkedCollectibles, checkedRegions);
+  };
+
+  const handleExportData = () => {
+    const exportData = {
+      schemaVersion: 1,
+      gameSlug: "zelda-tp",
+      exportedAt: new Date().toISOString(),
+      state: {
+        selectedGame,
+        checkedItems,
+        checkedCollectibles,
+        checkedRegions,
+      },
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `zelda-tp-tracker-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setDataTransferStatus(translations[lang].exportSuccess);
+  };
+
+  const readStringArray = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+  const handleImportData = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    try {
+      const payload = JSON.parse(await file.text());
+      const importedState = payload?.state || payload;
+      const validGames = ["tp-gcn", "tp-hd-normal", "tp-wii", "tp-hd-hero"];
+      const nextGame = validGames.includes(importedState?.selectedGame) ? importedState.selectedGame : "tp-gcn";
+      const nextItems = readStringArray(importedState?.checkedItems);
+      const nextCollectibles = readStringArray(importedState?.checkedCollectibles);
+      const nextRegions = readStringArray(importedState?.checkedRegions);
+
+      const hasTrackerShape = importedState && (
+        "selectedGame" in importedState ||
+        "checkedItems" in importedState ||
+        "checkedCollectibles" in importedState ||
+        "checkedRegions" in importedState
+      );
+
+      if (!hasTrackerShape) {
+        throw new Error("Missing tracker state");
+      }
+
+      setSelectedGame(nextGame);
+      setCheckedItems(nextItems);
+      setCheckedCollectibles(nextCollectibles);
+      setCheckedRegions(nextRegions.length ? nextRegions : ["ordon", "faron", "eldin", "lanayru", "desert", "snowpeak", "sky", "twilight"]);
+      await saveNow(nextGame, nextItems, nextCollectibles, nextRegions.length ? nextRegions : ["ordon", "faron", "eldin", "lanayru", "desert", "snowpeak", "sky", "twilight"]);
+      setDataTransferStatus(translations[lang].importSuccess);
+    } catch (err) {
+      console.error("Error importing tracker data:", err);
+      setDataTransferStatus(translations[lang].importError);
+    }
   };
 
   // Custom modal confirmation trigger
@@ -790,6 +893,32 @@ export default function TrackerDashboard({ initialState, userId, defaultTab }: T
 
         {/* Reset Actions and Footer (aligned together) */}
         <div className="w-full flex-col gap-xs mt-md" style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "16px" }}>
+          <div className="tracker-data-actions">
+            <Button
+              content={translations[lang].exportBtn}
+              type="secondary"
+              size="sm"
+              onClick={handleExportData}
+              className="tracker-data-button"
+            />
+            <Button
+              content={translations[lang].importBtn}
+              type="secondary"
+              size="sm"
+              onClick={() => importInputRef.current?.click()}
+              className="tracker-data-button"
+            />
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={handleImportData}
+            />
+          </div>
+          {dataTransferStatus && (
+            <p className="tracker-data-status">{dataTransferStatus}</p>
+          )}
           <Button
             content={translations[lang].resetBtn}
             type="danger"
